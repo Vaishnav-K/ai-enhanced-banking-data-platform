@@ -5,23 +5,75 @@ A banking data engineering portfolio project built with Python, DuckDB, SQL, Par
 ## Architecture
 
 ```mermaid
-flowchart TD
-    A[Synthetic Banking CSVs] --> B[DuckDB Ingestion]
-    B --> C[Data Validation]
-    C --> D[Deduplication]
-    D --> E{Record Quality}
-    E -->|Valid| F[Processed Parquet]
-    E -->|Invalid| G[Quarantine with Reasons]
-    F --> H[SQL Analytics]
-    F --> I[Anomaly Screening]
-    H --> J[CSV Reports]
-    F --> K[Quality Report]
-    G --> K
-    L[Incremental CSV Batch] --> M[Incremental Validation]
-    M --> N[Incremental Parquet Output]
-    M --> O[Incremental Quarantine]
-    P[GitHub Actions] --> Q[Automated Unit Tests]
-    A --> R[Amazon S3 Raw Data Lake]
+flowchart LR
+    subgraph SRC["01 · DATA SOURCES"]
+        A["Synthetic Banking CSVs"]
+        B["Incremental Transaction Batch"]
+    end
+
+    subgraph ING["02 · INGESTION"]
+        C["DuckDB Batch Ingestion"]
+        D["Incremental Ingestion"]
+    end
+
+    subgraph PROC["03 · QUALITY & PROCESSING"]
+        E["Schema & Data Validation"]
+        F["Deduplication"]
+        G{"Record Quality"}
+        H["Processed Parquet"]
+        I["Quarantine with Reasons"]
+        J["Incremental Validation"]
+        K["Incremental Parquet"]
+        L["Incremental Quarantine"]
+    end
+
+    subgraph ANA["04 · ANALYTICS & MONITORING"]
+        M["SQL Analytics"]
+        N["Data Quality Report"]
+        O["Anomaly Screening"]
+        P["CSV Analytics Exports"]
+    end
+
+    subgraph CLOUD["05 · CLOUD & CI/CD"]
+        Q[("Amazon S3 Raw Data Lake")]
+        R["GitHub Actions"]
+        S["Automated Unit Tests"]
+    end
+
+    A --> C
+    C --> E
+    E --> F
+    F --> G
+    G -->|Valid| H
+    G -->|Invalid| I
+
+    B --> D
+    D --> J
+    J --> K
+    J --> L
+
+    H --> M
+    H --> N
+    H --> O
+    M --> P
+    I --> N
+    K --> N
+    L --> N
+
+    A -. "Raw CSV upload" .-> Q
+    R --> S
+
+    classDef source fill:#E8F1FF,stroke:#3267B2,color:#17365D,stroke-width:1.5px
+    classDef ingest fill:#E5F7F0,stroke:#21876A,color:#124D3E,stroke-width:1.5px
+    classDef process fill:#FFF3D6,stroke:#C48A1B,color:#67450A,stroke-width:1.5px
+    classDef analytics fill:#F0E8FF,stroke:#8256C5,color:#42256D,stroke-width:1.5px
+    classDef cloud fill:#E1F4FA,stroke:#1684A5,color:#10495B,stroke-width:1.5px
+
+    class A,B source
+    class C,D ingest
+    class E,F,G,H,I,J,K,L process
+    class M,N,O,P analytics
+    class Q,R,S cloud
 ```
 
 ## Demonstrated Results
