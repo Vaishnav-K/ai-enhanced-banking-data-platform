@@ -17,3 +17,7 @@ data/quarantine/*.parquet
 .idea/
 # Generated analytics exports
 data/processed/*.csv
+
+# Generated reports and analytics
+data/processed/
+data/quarantine/
