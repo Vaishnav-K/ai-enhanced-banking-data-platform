@@ -8,6 +8,11 @@ import os
 import boto3
 from botocore.exceptions import ClientError
 
+if __package__:
+    from .ingestion_manifest import initialize_manifest, record_file
+else:
+    from ingestion_manifest import initialize_manifest, record_file
+
 ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = ROOT / "data" / "raw"
 AUDIT_FILE = ROOT / "data" / "processed" / "s3_ingestion_audit.jsonl"
@@ -48,94 +53,97 @@ def main():
     if not files:
         raise SystemExit(f"No CSV files found in {RAW_DIR}")
 
+    initialize_manifest()
     s3 = boto3.client("s3")
     uploaded = skipped = verified = failed = 0
 
     for path in files:
         key = f"{PREFIX}/{path.name}"
+        uri = f"s3://{bucket}/{key}"
         size = path.stat().st_size
         checksum = sha256_file(path)
-        action = "DRY_RUN"
 
         record = {
             "timestamp_utc": datetime.now(timezone.utc).isoformat(),
             "file": path.name,
-            "s3_uri": f"s3://{bucket}/{key}",
+            "s3_uri": uri,
             "size_bytes": size,
             "sha256": checksum,
             "mode": "upload" if args.upload else "dry_run",
         }
 
-        try:
-            if not args.upload:
-                print(
-                    f"[DRY RUN] {path.name}: {size} bytes, "
-                    f"SHA-256 {checksum}"
-                )
-                continue
+        if not args.upload:
+            print(
+                f"[DRY RUN] {path.name}: {size} bytes, SHA-256 {checksum}"
+            )
+            continue
 
+        try:
             try:
                 remote = s3.head_object(Bucket=bucket, Key=key)
             except ClientError as exc:
-                error_code = exc.response.get("Error", {}).get("Code", "")
+                code = exc.response.get("Error", {}).get("Code", "")
                 status = exc.response.get("ResponseMetadata", {}).get(
                     "HTTPStatusCode"
                 )
-                if error_code not in ("404", "NoSuchKey", "NotFound") and status != 404:
+                if code not in ("404", "NoSuchKey", "NotFound") and status != 404:
                     raise
-
                 remote = None
 
-            if remote is not None:
-                metadata = remote.get("Metadata", {})
-                remote_checksum = metadata.get(CHECKSUM_METADATA_KEY)
-
-                if remote_checksum == checksum:
-                    action = "SKIPPED_IDENTICAL"
-                    skipped += 1
-                    verified += 1
-                    print(f"SKIPPED (checksum matches): {path.name}")
-                    record["status"] = action
-                    append_audit(record)
-                    continue
-
-                print(f"Uploading {path.name}: missing or different checksum.")
-
-            s3.upload_file(
-                str(path),
-                bucket,
-                key,
-                ExtraArgs={"Metadata": {CHECKSUM_METADATA_KEY: checksum}},
-            )
-            uploaded += 1
-
-            remote = s3.head_object(Bucket=bucket, Key=key)
-            actual_size = remote["ContentLength"]
-            actual_checksum = remote.get("Metadata", {}).get(
-                CHECKSUM_METADATA_KEY
+            remote_checksum = (
+                remote.get("Metadata", {}).get(CHECKSUM_METADATA_KEY)
+                if remote is not None else None
             )
 
-            if actual_size != size or actual_checksum != checksum:
-                raise RuntimeError(
-                    f"Verification failed for {path.name}: "
-                    f"size expected={size}, actual={actual_size}; "
-                    f"checksum_match={actual_checksum == checksum}"
+            if (
+                remote is not None
+                and remote.get("ContentLength") == size
+                and remote_checksum == checksum
+            ):
+                status = "SKIPPED_IDENTICAL"
+                skipped += 1
+                verified += 1
+                print(f"SKIPPED (checksum matches): {path.name}")
+            else:
+                s3.upload_file(
+                    str(path),
+                    bucket,
+                    key,
+                    ExtraArgs={
+                        "Metadata": {CHECKSUM_METADATA_KEY: checksum}
+                    },
                 )
 
-            verified += 1
-            action = "UPLOADED_AND_VERIFIED"
-            print(f"UPLOADED AND VERIFIED: {path.name}")
+                remote = s3.head_object(Bucket=bucket, Key=key)
+                actual_size = remote.get("ContentLength")
+                actual_checksum = remote.get("Metadata", {}).get(
+                    CHECKSUM_METADATA_KEY
+                )
+
+                if actual_size != size or actual_checksum != checksum:
+                    raise RuntimeError(
+                        f"Verification failed for {path.name}: "
+                        f"size expected={size}, actual={actual_size}; "
+                        f"checksum_match={actual_checksum == checksum}"
+                    )
+
+                status = "UPLOADED_AND_VERIFIED"
+                uploaded += 1
+                verified += 1
+                print(f"UPLOADED AND VERIFIED: {path.name}")
+
+            record_file(path.name, uri, checksum, size, status)
+            append_audit({**record, "status": status})
 
         except Exception as exc:
             failed += 1
-            action = "FAILED"
-            record["error"] = str(exc)
+            append_audit({
+                **record,
+                "status": "FAILED",
+                "error": str(exc),
+            })
             print(f"FAILED: {path.name}: {exc}")
-            append_audit({**record, "status": action})
             raise
-
-        record["status"] = action
-        append_audit(record)
 
     print(f"\nFiles discovered: {len(files)}")
     print(f"Files uploaded: {uploaded}")
@@ -143,8 +151,11 @@ def main():
     print(f"Files verified: {verified}")
     print(f"Files failed: {failed}")
     print(f"Dry run: {not args.upload}")
-    print(f"Audit log: {AUDIT_FILE.relative_to(ROOT)}")
+    print(f"Audit log: {AUDIT_FILE}")
 
 
 if __name__ == "__main__":
     main()
+
+
+

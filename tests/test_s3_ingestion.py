@@ -3,7 +3,8 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+from botocore.exceptions import ClientError
 
 import src.s3_ingestion as ingestion
 
@@ -43,3 +44,97 @@ class TestS3IngestionHelpers(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class TestS3IngestionMain(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+        self.root = Path(self.temp_dir.name)
+        self.raw_dir = self.root / "raw"
+        self.raw_dir.mkdir()
+        self.audit_file = self.root / "processed" / "audit.jsonl"
+        self.content = b"id,amount\nT001,25.50\n"
+        (self.raw_dir / "sample.csv").write_bytes(self.content)
+        self.checksum = hashlib.sha256(self.content).hexdigest()
+        self.bucket = "test-bucket"
+
+        self.s3 = MagicMock()
+        self.patches = [
+            patch.object(ingestion, "RAW_DIR", self.raw_dir),
+            patch.object(ingestion, "AUDIT_FILE", self.audit_file),
+            patch.object(ingestion, "initialize_manifest"),
+            patch.object(ingestion, "record_file"),
+            patch.object(ingestion.boto3, "client", return_value=self.s3),
+            patch.dict("os.environ", {"BANKING_S3_BUCKET": self.bucket}),
+            patch("sys.argv", ["s3_ingestion.py", "--upload"]),
+        ]
+        for item in self.patches:
+            item.start()
+            self.addCleanup(item.stop)
+
+    def test_uploads_and_verifies_new_file(self):
+        self.s3.head_object.side_effect = [
+            ingestion.ClientError(
+                {
+                    "Error": {"Code": "404"},
+                    "ResponseMetadata": {"HTTPStatusCode": 404},
+                },
+                "HeadObject",
+            ),
+            {
+                "ContentLength": len(self.content),
+                "Metadata": {"source-sha256": self.checksum},
+            },
+        ]
+
+        ingestion.main()
+
+        self.s3.upload_file.assert_called_once()
+        ingestion.record_file.assert_called_once_with(
+            "sample.csv",
+            f"s3://{self.bucket}/banking-data/raw/sample.csv",
+            self.checksum,
+            len(self.content),
+            "UPLOADED_AND_VERIFIED",
+        )
+
+    def test_skips_file_when_size_and_checksum_match(self):
+        self.s3.head_object.return_value = {
+            "ContentLength": len(self.content),
+            "Metadata": {"source-sha256": self.checksum},
+        }
+
+        ingestion.main()
+
+        self.s3.upload_file.assert_not_called()
+        ingestion.record_file.assert_called_once_with(
+            "sample.csv",
+            f"s3://{self.bucket}/banking-data/raw/sample.csv",
+            self.checksum,
+            len(self.content),
+            "SKIPPED_IDENTICAL",
+        )
+
+    def test_reuploads_file_when_checksum_differs(self):
+        self.s3.head_object.side_effect = [
+            {
+                "ContentLength": len(self.content),
+                "Metadata": {"source-sha256": "old-checksum"},
+            },
+            {
+                "ContentLength": len(self.content),
+                "Metadata": {"source-sha256": self.checksum},
+            },
+        ]
+
+        ingestion.main()
+
+        self.s3.upload_file.assert_called_once()
+        ingestion.record_file.assert_called_once_with(
+            "sample.csv",
+            f"s3://{self.bucket}/banking-data/raw/sample.csv",
+            self.checksum,
+            len(self.content),
+            "UPLOADED_AND_VERIFIED",
+        )
+
