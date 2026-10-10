@@ -1,1 +1,2 @@
-duckdbboto3
+﻿duckdb
+boto3
