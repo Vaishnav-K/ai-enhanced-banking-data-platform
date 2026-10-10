@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+
+# Generated pipeline outputs
+data/processed/*.parquet
+data/quarantine/*.parquet
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+# Generated analytics exports
+data/processed/*.csv
