@@ -138,3 +138,55 @@ class TestS3IngestionMain(unittest.TestCase):
             "UPLOADED_AND_VERIFIED",
         )
 
+
+    def test_upload_failure_is_recorded_in_manifest(self):
+        self.s3.head_object.side_effect = ingestion.ClientError(
+            {
+                "Error": {"Code": "404"},
+                "ResponseMetadata": {"HTTPStatusCode": 404},
+            },
+            "HeadObject",
+        )
+        self.s3.upload_file.side_effect = RuntimeError("Simulated upload failure")
+
+        with self.assertRaisesRegex(RuntimeError, "Simulated upload failure"):
+            ingestion.main()
+
+        call = ingestion.record_file.call_args
+        self.assertEqual(call.args[0], "sample.csv")
+        self.assertEqual(call.args[4], "FAILED")
+        self.assertIn("Simulated upload failure", call.kwargs["error"])
+
+        audit = json.loads(
+            self.audit_file.read_text(encoding="utf-8").strip()
+        )
+        self.assertEqual(audit["status"], "FAILED")
+        self.assertIn("Simulated upload failure", audit["error"])
+
+    def test_verification_mismatch_is_recorded_as_failure(self):
+        self.s3.head_object.side_effect = [
+            ingestion.ClientError(
+                {
+                    "Error": {"Code": "404"},
+                    "ResponseMetadata": {"HTTPStatusCode": 404},
+                },
+                "HeadObject",
+            ),
+            {
+                "ContentLength": len(self.content),
+                "Metadata": {"source-sha256": "wrong-checksum"},
+            },
+        ]
+
+        with self.assertRaisesRegex(RuntimeError, "Verification failed"):
+            ingestion.main()
+
+        call = ingestion.record_file.call_args
+        self.assertEqual(call.args[4], "FAILED")
+        self.assertIn("Verification failed", call.kwargs["error"])
+
+        audit = json.loads(
+            self.audit_file.read_text(encoding="utf-8").strip()
+        )
+        self.assertEqual(audit["status"], "FAILED")
+        self.assertIn("Verification failed", audit["error"])

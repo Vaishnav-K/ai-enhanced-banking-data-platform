@@ -137,6 +137,21 @@ def main():
 
         except Exception as exc:
             failed += 1
+            try:
+                record_file(
+                    path.name,
+                    uri,
+                    checksum,
+                    size,
+                    "FAILED",
+                    error=str(exc),
+                )
+            except Exception as manifest_exc:
+                print(
+                    f"WARNING: Could not record manifest failure "
+                    f"for {path.name}: {manifest_exc}"
+                )
+
             append_audit({
                 **record,
                 "status": "FAILED",
@@ -156,6 +171,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 

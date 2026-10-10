@@ -76,6 +76,44 @@ class TestIngestionManifest(unittest.TestCase):
         self.assertEqual(records[0]["size_bytes"], 4096)
         self.assertEqual(records[0]["successful_runs"], 2)
 
+    def test_failed_attempt_records_error_without_counting_success(self):
+        uri = "s3://test-bucket/banking-data/raw/customers.csv"
+
+        manifest.record_file(
+            "customers.csv", uri, "new-checksum", 4096,
+            "FAILED", error="Simulated upload failure"
+        )
+
+        records = manifest.get_manifest_records()
+
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0]["status"], "FAILED")
+        self.assertEqual(records[0]["last_error"], "Simulated upload failure")
+        self.assertEqual(records[0]["successful_runs"], 0)
+        self.assertIsNone(records[0]["last_successful_checksum"])
+
+    def test_failed_attempt_preserves_last_successful_checksum(self):
+        uri = "s3://test-bucket/banking-data/raw/customers.csv"
+
+        manifest.record_file(
+            "customers.csv", uri, "good-checksum", 2048,
+            "UPLOADED_AND_VERIFIED"
+        )
+        manifest.record_file(
+            "customers.csv", uri, "new-checksum", 4096,
+            "FAILED", error="Checksum verification failed"
+        )
+
+        records = manifest.get_manifest_records()
+        record = records[0]
+
+        self.assertEqual(len(records), 1)
+        self.assertEqual(record["status"], "FAILED")
+        self.assertEqual(record["checksum_sha256"], "new-checksum")
+        self.assertEqual(record["last_successful_checksum"], "good-checksum")
+        self.assertEqual(record["last_error"], "Checksum verification failed")
+        self.assertEqual(record["successful_runs"], 1)
 
 if __name__ == "__main__":
     unittest.main()
+
