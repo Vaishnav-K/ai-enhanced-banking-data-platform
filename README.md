@@ -5,75 +5,69 @@ A banking data engineering portfolio project built with Python, DuckDB, SQL, Par
 ## Architecture
 
 ```mermaid
-flowchart LR
-    subgraph SRC["01 · DATA SOURCES"]
+flowchart TB
+    subgraph S1["01 | DATA SOURCES"]
         A["Synthetic Banking CSVs"]
         B["Incremental Transaction Batch"]
     end
 
-    subgraph ING["02 · INGESTION"]
-        C["DuckDB Batch Ingestion"]
-        D["Incremental Ingestion"]
+    subgraph S2["02 | INGESTION"]
+        C["DuckDB Batch ETL"]
+        D["Incremental ETL"]
     end
 
-    subgraph PROC["03 · QUALITY & PROCESSING"]
-        E["Schema & Data Validation"]
+    subgraph S3["03 | DATA QUALITY"]
+        E["Schema Validation"]
         F["Deduplication"]
-        G{"Record Quality"}
+        G{"Valid Record?"}
         H["Processed Parquet"]
-        I["Quarantine with Reasons"]
+        I["Quarantine + Rejection Reasons"]
         J["Incremental Validation"]
         K["Incremental Parquet"]
         L["Incremental Quarantine"]
     end
 
-    subgraph ANA["04 · ANALYTICS & MONITORING"]
+    subgraph S4["04 | ANALYTICS"]
         M["SQL Analytics"]
         N["Data Quality Report"]
         O["Anomaly Screening"]
-        P["CSV Analytics Exports"]
+        P["CSV Exports"]
     end
 
-    subgraph CLOUD["05 · CLOUD & CI/CD"]
-        Q[("Amazon S3 Raw Data Lake")]
+    subgraph S5["05 | CLOUD & CI/CD"]
+        Q[("Amazon S3 | Raw Data")]
         R["GitHub Actions"]
-        S["Automated Unit Tests"]
+        T["Automated Tests"]
+        R --> T
     end
 
-    A --> C
-    C --> E
-    E --> F
-    F --> G
+    A --> C --> E --> F --> G
     G -->|Valid| H
     G -->|Invalid| I
-
-    B --> D
-    D --> J
+    B --> D --> J
     J --> K
     J --> L
 
-    H --> M
+    H --> M --> P
     H --> N
     H --> O
-    M --> P
     I --> N
     K --> N
     L --> N
 
-    A -. "Raw CSV upload" .-> Q
-    R --> S
+    A -. "CSV upload" .-> Q
 
-    classDef source fill:#E8F1FF,stroke:#3267B2,color:#17365D,stroke-width:1.5px
-    classDef ingest fill:#E5F7F0,stroke:#21876A,color:#124D3E,stroke-width:1.5px
-    classDef process fill:#FFF3D6,stroke:#C48A1B,color:#67450A,stroke-width:1.5px
-    classDef analytics fill:#F0E8FF,stroke:#8256C5,color:#42256D,stroke-width:1.5px
-    classDef cloud fill:#E1F4FA,stroke:#1684A5,color:#10495B,stroke-width:1.5px
+    classDef source fill:#E8F1FF,stroke:#3267B2,color:#17365D
+    classDef ingest fill:#DDF5E8,stroke:#21876A,color:#124D3E
+    classDef quality fill:#FFF0D0,stroke:#C48A1B,color:#67450A
+    classDef analytics fill:#EEE4FF,stroke:#8256C5,color:#42256D
+    classDef cloud fill:#DDF4FA,stroke:#1684A5,color:#10495B
 
     class A,B source
     class C,D ingest
-    class E,F,G,H,I,J,K,L process
+    class E,F,G,H,I,J,K,L quality
     class M,N,O,P analytics
-    class Q,R,S cloud
+    class Q,R,T cloud
 ```
 
 ## Demonstrated Results
