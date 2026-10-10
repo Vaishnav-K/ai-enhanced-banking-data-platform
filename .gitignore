@@ -21,3 +21,6 @@ data/processed/*.csv
 # Generated reports and analytics
 data/processed/
 data/quarantine/
+
+# Python 3.12 virtual environment
+.venv312/

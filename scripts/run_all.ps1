@@ -1,9 +1,9 @@
-﻿$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $ProjectRoot
 
-$Python = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
+$Python = Join-Path $ProjectRoot ".venv312\Scripts\python.exe"
 
 Write-Host "`n=== Main ETL Pipeline ===" -ForegroundColor Cyan
 & $Python ".\src\etl_pipeline.py"
@@ -29,3 +29,4 @@ Write-Host "`n=== Automated Tests ===" -ForegroundColor Cyan
 if ($LASTEXITCODE -ne 0) { throw "Automated tests failed." }
 
 Write-Host "`nAll pipeline steps and tests completed successfully." -ForegroundColor Green
+
