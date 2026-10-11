@@ -1,10 +1,14 @@
 ﻿from pathlib import Path
+from datetime import datetime, timezone
 import argparse
+import json
 import subprocess
 import sys
+import time
 
 ROOT = Path(__file__).resolve().parent.parent
 PYTHON = sys.executable
+REPORT = ROOT / "data" / "processed" / "pipeline_run_report.json"
 
 STEPS = [
     ("Schema Validation", ROOT / "src" / "schema_validation.py"),
@@ -16,58 +20,139 @@ STEPS = [
 ]
 
 
+def utc_now():
+    return datetime.now(timezone.utc).isoformat()
+
+
 def run_command(command, cwd=ROOT):
+    """Execute a command and return its exit code."""
     return subprocess.run(command, cwd=cwd, check=False).returncode
 
 
+def run_stage(name, command, cwd=ROOT):
+    started_at = utc_now()
+    start_clock = time.perf_counter()
+
+    print(f"\n>>> {name}")
+    print("-" * 60)
+
+    try:
+        exit_code = run_command(command, cwd=cwd)
+        error = None if exit_code == 0 else (
+            f"Process exited with code {exit_code}"
+        )
+    except OSError as exc:
+        exit_code = -1
+        error = str(exc)
+
+    duration = round(time.perf_counter() - start_clock, 3)
+
+    return {
+        "stage": name,
+        "status": "PASS" if exit_code == 0 else "FAIL",
+        "started_at_utc": started_at,
+        "finished_at_utc": utc_now(),
+        "duration_seconds": duration,
+        "exit_code": exit_code,
+        "error": error,
+    }
+
+
+def write_report(report):
+    REPORT.parent.mkdir(parents=True, exist_ok=True)
+    REPORT.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    print(f"\nPipeline run report saved to: {REPORT}")
+
+
 def main(argv=None):
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Run the banking data pipeline with execution telemetry."
+    )
     parser.add_argument(
         "--upload-s3",
         action="store_true",
-        help="Upload raw CSV files to S3 after all pipeline stages and tests pass.",
+        help="Upload raw CSV files to S3 after pipeline stages and tests pass.",
     )
     args = parser.parse_args(argv)
 
+    run_started = utc_now()
+    overall_start = time.perf_counter()
+    stages = []
+    overall_status = "PASS"
+    failure_stage = None
+
     print("=" * 60)
     print("AI-ENHANCED BANKING DATA PLATFORM")
+    print("PIPELINE OBSERVABILITY ENABLED")
     print("=" * 60)
 
     for name, script in STEPS:
-        print(f"\n>>> {name}")
-        result = run_command([PYTHON, str(script)])
+        result = run_stage(name, [PYTHON, str(script)])
+        stages.append(result)
 
-        if result != 0:
-            print(f"\nFAILED: {name}")
-            return result
+        if result["status"] == "FAIL":
+            overall_status = "FAIL"
+            failure_stage = name
+            break
 
-    print("\n>>> Automated Tests")
-    result = run_command([
-        PYTHON, "-m", "unittest", "discover",
-        "-s", "tests", "-p", "test_*.py", "-v",
-    ])
+    if overall_status == "PASS":
+        result = run_stage(
+            "Automated Tests",
+            [
+                PYTHON, "-m", "unittest", "discover",
+                "-s", "tests", "-p", "test_*.py", "-v",
+            ],
+        )
+        stages.append(result)
 
-    if result != 0:
-        print("\nFAILED: Automated Tests")
-        return result
+        if result["status"] == "FAIL":
+            overall_status = "FAIL"
+            failure_stage = "Automated Tests"
 
-    if args.upload_s3:
-        print("\n>>> S3 Raw Data Ingestion")
-        result = run_command([
-            PYTHON, str(ROOT / "src" / "s3_ingestion.py"), "--upload",
-        ])
+    if overall_status == "PASS" and args.upload_s3:
+        result = run_stage(
+            "S3 Raw Data Ingestion",
+            [PYTHON, str(ROOT / "src" / "s3_ingestion.py"), "--upload"],
+        )
+        stages.append(result)
 
-        if result != 0:
-            print("\nFAILED: S3 Raw Data Ingestion")
-            return result
-    else:
-        print("\n>>> S3 upload skipped (use --upload-s3 to enable).")
+        if result["status"] == "FAIL":
+            overall_status = "FAIL"
+            failure_stage = "S3 Raw Data Ingestion"
+    elif not args.upload_s3:
+        stages.append({
+            "stage": "S3 Raw Data Ingestion",
+            "status": "SKIPPED",
+            "started_at_utc": None,
+            "finished_at_utc": None,
+            "duration_seconds": 0,
+            "exit_code": None,
+            "error": None,
+            "reason": "S3 upload was not requested",
+        })
 
-    print("\nAll requested pipeline stages completed successfully.")
-    return 0
+    report = {
+        "pipeline": "AI-Enhanced Banking Data Platform",
+        "run_started_at_utc": run_started,
+        "run_finished_at_utc": utc_now(),
+        "total_duration_seconds": round(
+            time.perf_counter() - overall_start, 3
+        ),
+        "status": overall_status,
+        "failure_stage": failure_stage,
+        "stage_count": len(stages),
+        "passed_stages": sum(s["status"] == "PASS" for s in stages),
+        "failed_stages": sum(s["status"] == "FAIL" for s in stages),
+        "skipped_stages": sum(s["status"] == "SKIPPED" for s in stages),
+        "stages": stages,
+    }
+
+    write_report(report)
+    print(f"PIPELINE STATUS: {overall_status}")
+    print(f"Total duration: {report['total_duration_seconds']} seconds")
+
+    return 0 if overall_status == "PASS" else 1
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-
