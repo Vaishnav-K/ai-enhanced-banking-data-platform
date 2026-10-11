@@ -25,23 +25,14 @@ jobs:
       - name: Generate synthetic banking data
         run: python src/generate_data.py
 
-      - name: Validate source schemas and values
-        run: python src/schema_validation.py
+      - name: Run observable pipeline and tests
+        run: python src/demo.py
 
-      - name: Run ETL pipeline
-        run: python src/etl_pipeline.py
-
-      - name: Run incremental pipeline
-        run: python src/incremental_pipeline.py
-
-      - name: Run quality report
-        run: python src/quality_report.py
-
-      - name: Run anomaly detection
-        run: python src/anomaly_detection.py
-
-      - name: Export analytics
-        run: python src/export_analytics.py
-
-      - name: Run unit tests
-        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Upload pipeline run report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-run-report
+          path: data/processed/pipeline_run_report.json
+          if-no-files-found: warn
+          retention-days: 14
