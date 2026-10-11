@@ -1,8 +1,9 @@
-﻿import unittest
-from unittest.mock import patch, call
-import sys
+﻿import sys
+import unittest
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'src'))
+from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 import demo
 
 
@@ -10,22 +11,23 @@ class TestQualityGateWorkflow(unittest.TestCase):
 
     @patch("demo.run_command")
     def test_failed_quality_report_stops_later_stages(self, run_command):
-        # Main ETL and incremental ETL pass; quality report fails.
-        run_command.side_effect = [0, 0, 1]
+        # Schema, Main ETL and Incremental ETL pass; Quality Report fails.
+        run_command.side_effect = [0, 0, 0, 1]
 
         with patch("builtins.print"):
             result = demo.main([])
 
         self.assertEqual(result, 1)
-        self.assertEqual(run_command.call_count, 3)
+        self.assertEqual(run_command.call_count, 4)
 
-        called_scripts = [
+        scripts = [
             str(args[0][1])
             for args, kwargs in run_command.call_args_list
         ]
-        self.assertTrue(called_scripts[0].endswith("etl_pipeline.py"))
-        self.assertTrue(called_scripts[1].endswith("incremental_pipeline.py"))
-        self.assertTrue(called_scripts[2].endswith("quality_report.py"))
+        self.assertTrue(scripts[0].endswith("schema_validation.py"))
+        self.assertTrue(scripts[1].endswith("etl_pipeline.py"))
+        self.assertTrue(scripts[2].endswith("incremental_pipeline.py"))
+        self.assertTrue(scripts[3].endswith("quality_report.py"))
 
     @patch("demo.run_command")
     def test_successful_workflow_reaches_tests(self, run_command):
@@ -35,23 +37,24 @@ class TestQualityGateWorkflow(unittest.TestCase):
             result = demo.main([])
 
         self.assertEqual(result, 0)
-
         commands = [args[0] for args, kwargs in run_command.call_args_list]
-        self.assertEqual(len(commands), 6)
-        self.assertIn("unittest", commands[5])
+
+        # Six pipeline stages plus one automated test command.
+        self.assertEqual(len(commands), 7)
+        self.assertTrue(commands[0][1].endswith("schema_validation.py"))
+        self.assertIn("unittest", commands[6])
 
     @patch("demo.run_command")
     def test_s3_is_not_run_when_tests_fail(self, run_command):
-        # Five pipeline stages pass, but automated tests fail.
-        run_command.side_effect = [0, 0, 0, 0, 0, 1]
+        # Six pipeline stages pass, but automated tests fail.
+        run_command.side_effect = [0, 0, 0, 0, 0, 0, 1]
 
         with patch("builtins.print"):
             result = demo.main(["--upload-s3"])
 
         self.assertEqual(result, 1)
-        self.assertEqual(run_command.call_count, 6)
+        self.assertEqual(run_command.call_count, 7)
 
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
-

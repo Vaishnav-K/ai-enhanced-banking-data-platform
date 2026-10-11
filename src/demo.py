@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parent.parent
 PYTHON = sys.executable
 
 STEPS = [
+    ("Schema Validation", ROOT / "src" / "schema_validation.py"),
     ("Main ETL", ROOT / "src" / "etl_pipeline.py"),
     ("Incremental ETL", ROOT / "src" / "incremental_pipeline.py"),
     ("Quality Report", ROOT / "src" / "quality_report.py"),
@@ -68,3 +69,5 @@ def main(argv=None):
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
