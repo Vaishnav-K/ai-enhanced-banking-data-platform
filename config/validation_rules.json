@@ -1,72 +1,86 @@
 ﻿{
-  "version": 1,
-  "unexpected_columns_policy": "WARN",
-  "row_value_policy": "WARN",
-  "schemas": {
-    "customers.csv": {
-      "required_columns": [
-        "customer_id",
-        "customer_name",
-        "account_type",
-        "registration_date"
-      ],
-      "required_values": [
-        "customer_id",
-        "customer_name",
-        "account_type",
-        "registration_date"
-      ],
-      "allowed_values": {
-        "account_type": ["SAVINGS", "CURRENT", "SALARY"]
-      }
-    },
-    "transactions.csv": {
-      "required_columns": [
-        "transaction_id",
-        "customer_id",
-        "transaction_type",
-        "amount",
-        "transaction_timestamp",
-        "status"
-      ],
-      "required_values": [
-        "transaction_id",
-        "customer_id",
-        "transaction_type",
-        "amount",
-        "transaction_timestamp",
-        "status"
-      ],
-      "allowed_values": {
-        "transaction_type": ["CREDIT", "DEBIT", "TRANSFER", "PAYMENT"],
-        "status": ["SUCCESS", "FAILED", "PENDING"]
-      }
-    }
-  },
-  "field_rules": {
-    "registration_date": {
-      "type": "date",
-      "format": "%Y-%m-%d",
-      "severity": "WARN"
-    },
-    "transaction_timestamp": {
-      "type": "datetime",
-      "format": "%Y-%m-%d %H:%M:%S",
-      "severity": "WARN"
-    },
-    "amount": {
-      "type": "decimal",
-      "must_be_positive": true,
-      "severity": "WARN"
-    }
-  },
-  "issue_severities": {
-    "MISSING_REQUIRED_VALUE": "WARN",
-    "INVALID_DATE_FORMAT": "WARN",
-    "INVALID_TIMESTAMP_FORMAT": "WARN",
-    "INVALID_NUMERIC_AMOUNT": "WARN",
-    "NON_POSITIVE_AMOUNT": "WARN",
-    "UNEXPECTED_BUSINESS_VALUE": "WARN",
-    "EXTRA_CSV_FIELDS": "WARN"
-  }
+    "version":  1,
+    "unexpected_columns_policy":  "WARN",
+    "row_value_policy":  "WARN",
+    "schemas":  {
+                    "customers.csv":  {
+                                          "required_columns":  [
+                                                                   "customer_id",
+                                                                   "customer_name",
+                                                                   "account_type",
+                                                                   "registration_date"
+                                                               ],
+                                          "required_values":  [
+                                                                  "customer_id",
+                                                                  "customer_name",
+                                                                  "account_type",
+                                                                  "registration_date"
+                                                              ],
+                                          "allowed_values":  {
+                                                                 "account_type":  [
+                                                                                      "SAVINGS",
+                                                                                      "CURRENT",
+                                                                                      "SALARY"
+                                                                                  ]
+                                                             }
+                                      },
+                    "transactions.csv":  {
+                                             "required_columns":  [
+                                                                      "transaction_id",
+                                                                      "customer_id",
+                                                                      "transaction_type",
+                                                                      "amount",
+                                                                      "transaction_timestamp",
+                                                                      "status"
+                                                                  ],
+                                             "required_values":  [
+                                                                     "transaction_id",
+                                                                     "customer_id",
+                                                                     "transaction_type",
+                                                                     "amount",
+                                                                     "transaction_timestamp",
+                                                                     "status"
+                                                                 ],
+                                             "allowed_values":  {
+                                                                    "transaction_type":  [
+                                                                                             "CREDIT",
+                                                                                             "DEBIT",
+                                                                                             "TRANSFER",
+                                                                                             "PAYMENT"
+                                                                                         ],
+                                                                    "status":  [
+                                                                                   "SUCCESS",
+                                                                                   "FAILED",
+                                                                                   "PENDING"
+                                                                               ]
+                                                                }
+                                         }
+                },
+    "field_rules":  {
+                        "registration_date":  {
+                                                  "type":  "date",
+                                                  "format":  "%Y-%m-%d",
+                                                  "severity":  "WARN"
+                                              },
+                        "transaction_timestamp":  {
+                                                      "type":  "datetime",
+                                                      "format":  "%Y-%m-%d %H:%M:%S",
+                                                      "severity":  "WARN"
+                                                  },
+                        "amount":  {
+                                       "type":  "decimal",
+                                       "must_be_positive":  true,
+                                       "severity":  "WARN"
+                                   }
+                    },
+    "issue_severities":  {
+                             "MISSING_REQUIRED_VALUE":  "WARN",
+                             "INVALID_DATE_FORMAT":  "WARN",
+                             "INVALID_TIMESTAMP_FORMAT":  "WARN",
+                             "INVALID_NUMERIC_AMOUNT":  "WARN",
+                             "NON_POSITIVE_AMOUNT":  "WARN",
+                             "UNEXPECTED_BUSINESS_VALUE":  "WARN",
+                             "EXTRA_CSV_FIELDS":  "WARN",
+                             "UNKNOWN_CUSTOMER_ID":  "WARN"
+                         }
 }

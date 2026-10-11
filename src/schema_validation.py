@@ -24,10 +24,8 @@ EXPECTED_SCHEMAS = {
 def load_config():
     with CONFIG_FILE.open("r", encoding="utf-8-sig") as handle:
         config = json.load(handle)
-
     if not isinstance(config.get("schemas"), dict):
         raise ValueError("Configuration must contain a schemas object")
-
     return config
 
 
@@ -35,7 +33,6 @@ def add_issue(issues, config, row_number, field, reason):
     severity = config.get("issue_severities", {}).get(reason, "WARN")
     if severity not in {"WARN", "FAIL"}:
         severity = "WARN"
-
     issues.append({
         "row": row_number,
         "field": field,
@@ -118,30 +115,7 @@ def validate_values(filename, expected_columns):
                             "UNEXPECTED_BUSINESS_VALUE"
                         )
 
-        reason_counts = {}
-        severity_counts = {}
-        for issue in issues:
-            reason = issue["reason"]
-            severity = issue["severity"]
-            reason_counts[reason] = reason_counts.get(reason, 0) + 1
-            severity_counts[severity] = severity_counts.get(severity, 0) + 1
-
-        status = (
-            "FAIL" if severity_counts.get("FAIL", 0)
-            else "WARN" if issues
-            else "PASS"
-        )
-
-        return {
-            "status": status,
-            "rows_checked": rows_checked,
-            "issue_count": len(issues),
-            "issue_counts_by_reason": reason_counts,
-            "issue_counts_by_severity": severity_counts,
-            "sample_issues": issues[:20],
-            "sample_limit": 20,
-            "error": None,
-        }
+        return summarize_issues(issues, rows_checked)
 
     except (
         OSError, UnicodeError, csv.Error, json.JSONDecodeError,
@@ -156,6 +130,72 @@ def validate_values(filename, expected_columns):
             "sample_issues": issues[:20],
             "error": str(exc),
         }
+
+
+def summarize_issues(issues, rows_checked):
+    reason_counts = {}
+    severity_counts = {}
+
+    for issue in issues:
+        reason = issue["reason"]
+        severity = issue["severity"]
+        reason_counts[reason] = reason_counts.get(reason, 0) + 1
+        severity_counts[severity] = severity_counts.get(severity, 0) + 1
+
+    status = (
+        "FAIL" if severity_counts.get("FAIL", 0)
+        else "WARN" if issues
+        else "PASS"
+    )
+
+    return {
+        "status": status,
+        "rows_checked": rows_checked,
+        "issue_count": len(issues),
+        "issue_counts_by_reason": reason_counts,
+        "issue_counts_by_severity": severity_counts,
+        "sample_issues": issues[:20],
+        "sample_limit": 20,
+        "error": None,
+    }
+
+
+def validate_referential_integrity():
+    config = load_config()
+    issues = []
+    rows_checked = 0
+
+    customers_path = RAW_DIR / "customers.csv"
+    transactions_path = RAW_DIR / "transactions.csv"
+
+    with customers_path.open("r", newline="", encoding="utf-8-sig") as handle:
+        customer_reader = csv.DictReader(handle)
+        customer_ids = {
+            row["customer_id"].strip()
+            for row in customer_reader
+            if row.get("customer_id") and row["customer_id"].strip()
+        }
+
+    with transactions_path.open(
+        "r", newline="", encoding="utf-8-sig"
+    ) as handle:
+        transaction_reader = csv.DictReader(handle)
+
+        for row_number, row in enumerate(transaction_reader, start=2):
+            rows_checked += 1
+            customer_id = row.get("customer_id")
+
+            # Missing IDs are already reported by field-level validation.
+            if customer_id is None or not customer_id.strip():
+                continue
+
+            if customer_id.strip() not in customer_ids:
+                add_issue(
+                    issues, config, row_number,
+                    "customer_id", "UNKNOWN_CUSTOMER_ID"
+                )
+
+    return summarize_issues(issues, rows_checked)
 
 
 def validate_file(filename, expected_columns):
@@ -222,17 +262,25 @@ def validate_file(filename, expected_columns):
 def main():
     try:
         config = load_config()
-    except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
-        print(f"CONFIGURATION ERROR: {exc}")
+        results = {}
+
+        for filename, schema in config["schemas"].items():
+            results[filename] = validate_file(
+                filename, schema.get("required_columns", [])
+            )
+
+        results["referential_integrity"] = validate_referential_integrity()
+
+    except (
+        OSError, UnicodeError, csv.Error, json.JSONDecodeError,
+        ValueError, KeyError, TypeError
+    ) as exc:
+        print(f"VALIDATION ERROR: {exc}")
         return 1
 
-    results = {}
-    for filename, schema in config["schemas"].items():
-        results[filename] = validate_file(
-            filename, schema.get("required_columns", [])
-        )
-
-    failed = any(result["status"] == "FAIL" for result in results.values())
+    failed = any(
+        result["status"] == "FAIL" for result in results.values()
+    )
 
     report = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -247,6 +295,7 @@ def main():
 
     REPORT.parent.mkdir(parents=True, exist_ok=True)
     REPORT.write_text(json.dumps(report, indent=2), encoding="utf-8")
+
     print(json.dumps(report, indent=2))
     print(f"\nSchema report saved to: {REPORT}")
     print(f"SCHEMA VALIDATION: {report['status']}")
