@@ -2,41 +2,15 @@
 import csv
 import json
 import sys
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = ROOT / "data" / "raw"
 REPORT = ROOT / "data" / "processed" / "schema_validation_report.json"
+CONFIG_FILE = ROOT / "config" / "validation_rules.json"
 
 EXPECTED_SCHEMAS = {
-    "customers.csv": [
-        "customer_id",
-        "customer_name",
-        "account_type",
-        "registration_date",
-    ],
-    "transactions.csv": [
-        "transaction_id",
-        "customer_id",
-        "transaction_type",
-        "amount",
-        "transaction_timestamp",
-        "status",
-    ],
-}
-
-ALLOWED_VALUES = {
-    "customers.csv": {
-        "account_type": {"SAVINGS", "CURRENT", "SALARY"},
-    },
-    "transactions.csv": {
-        "transaction_type": {"CREDIT", "DEBIT", "TRANSFER", "PAYMENT"},
-        "status": {"SUCCESS", "FAILED", "PENDING"},
-    },
-}
-
-REQUIRED_VALUES = {
     "customers.csv": [
         "customer_id", "customer_name", "account_type", "registration_date"
     ],
@@ -47,107 +21,138 @@ REQUIRED_VALUES = {
 }
 
 
+def load_config():
+    with CONFIG_FILE.open("r", encoding="utf-8-sig") as handle:
+        config = json.load(handle)
+
+    if not isinstance(config.get("schemas"), dict):
+        raise ValueError("Configuration must contain a schemas object")
+
+    return config
+
+
+def add_issue(issues, config, row_number, field, reason):
+    severity = config.get("issue_severities", {}).get(reason, "WARN")
+    if severity not in {"WARN", "FAIL"}:
+        severity = "WARN"
+
+    issues.append({
+        "row": row_number,
+        "field": field,
+        "reason": reason,
+        "severity": severity,
+    })
+
+
 def validate_values(filename, expected_columns):
     path = RAW_DIR / filename
     issues = []
     rows_checked = 0
 
     try:
+        config = load_config()
+        schema = config["schemas"][filename]
+        required_values = set(schema.get("required_values", []))
+        allowed_values = schema.get("allowed_values", {})
+        field_rules = config.get("field_rules", {})
+
         with path.open("r", newline="", encoding="utf-8-sig") as handle:
             reader = csv.DictReader(handle)
 
             for row_number, row in enumerate(reader, start=2):
                 rows_checked += 1
 
-                # Malformed rows with extra CSV fields have a None key.
                 if None in row:
-                    issues.append({
-                        "row": row_number,
-                        "field": "_row",
-                        "reason": "EXTRA_CSV_FIELDS",
-                    })
+                    add_issue(
+                        issues, config, row_number, "_row", "EXTRA_CSV_FIELDS"
+                    )
 
                 for column in expected_columns:
                     value = row.get(column)
 
                     if value is None or not value.strip():
-                        if column in REQUIRED_VALUES[filename]:
-                            issues.append({
-                                "row": row_number,
-                                "field": column,
-                                "reason": "MISSING_REQUIRED_VALUE",
-                            })
+                        if column in required_values:
+                            add_issue(
+                                issues, config, row_number, column,
+                                "MISSING_REQUIRED_VALUE"
+                            )
                         continue
 
                     value = value.strip()
+                    rule = field_rules.get(column, {})
+                    rule_type = rule.get("type")
 
-                    if column == "registration_date":
+                    if rule_type in {"date", "datetime"}:
                         try:
-                            date.fromisoformat(value)
-                        except ValueError:
-                            issues.append({
-                                "row": row_number,
-                                "field": column,
-                                "reason": "INVALID_DATE_FORMAT",
-                            })
+                            datetime.strptime(value, rule["format"])
+                        except (ValueError, KeyError, TypeError):
+                            reason = (
+                                "INVALID_DATE_FORMAT"
+                                if rule_type == "date"
+                                else "INVALID_TIMESTAMP_FORMAT"
+                            )
+                            add_issue(issues, config, row_number, column, reason)
 
-                    elif column == "transaction_timestamp":
-                        try:
-                            datetime.fromisoformat(value)
-                        except ValueError:
-                            issues.append({
-                                "row": row_number,
-                                "field": column,
-                                "reason": "INVALID_TIMESTAMP_FORMAT",
-                            })
-
-                    elif column == "amount":
+                    elif rule_type == "decimal":
                         try:
                             amount = Decimal(value)
                             if not amount.is_finite():
                                 raise InvalidOperation
-                            if amount <= 0:
-                                issues.append({
-                                    "row": row_number,
-                                    "field": column,
-                                    "reason": "NON_POSITIVE_AMOUNT",
-                                })
+                            if rule.get("must_be_positive") and amount <= 0:
+                                add_issue(
+                                    issues, config, row_number, column,
+                                    "NON_POSITIVE_AMOUNT"
+                                )
                         except (InvalidOperation, ValueError):
-                            issues.append({
-                                "row": row_number,
-                                "field": column,
-                                "reason": "INVALID_NUMERIC_AMOUNT",
-                            })
+                            add_issue(
+                                issues, config, row_number, column,
+                                "INVALID_NUMERIC_AMOUNT"
+                            )
 
-                    allowed = ALLOWED_VALUES.get(filename, {}).get(column)
-                    if allowed and value.upper() not in allowed:
-                        issues.append({
-                            "row": row_number,
-                            "field": column,
-                            "reason": "UNEXPECTED_BUSINESS_VALUE",
-                        })
+                    allowed = allowed_values.get(column)
+                    if allowed and value.upper() not in {
+                        str(item).upper() for item in allowed
+                    }:
+                        add_issue(
+                            issues, config, row_number, column,
+                            "UNEXPECTED_BUSINESS_VALUE"
+                        )
 
         reason_counts = {}
+        severity_counts = {}
         for issue in issues:
             reason = issue["reason"]
+            severity = issue["severity"]
             reason_counts[reason] = reason_counts.get(reason, 0) + 1
+            severity_counts[severity] = severity_counts.get(severity, 0) + 1
+
+        status = (
+            "FAIL" if severity_counts.get("FAIL", 0)
+            else "WARN" if issues
+            else "PASS"
+        )
 
         return {
-            "status": "WARN" if issues else "PASS",
+            "status": status,
             "rows_checked": rows_checked,
             "issue_count": len(issues),
             "issue_counts_by_reason": reason_counts,
+            "issue_counts_by_severity": severity_counts,
             "sample_issues": issues[:20],
             "sample_limit": 20,
             "error": None,
         }
 
-    except (OSError, UnicodeError, csv.Error) as exc:
+    except (
+        OSError, UnicodeError, csv.Error, json.JSONDecodeError,
+        ValueError, KeyError, TypeError
+    ) as exc:
         return {
             "status": "FAIL",
             "rows_checked": rows_checked,
             "issue_count": len(issues),
             "issue_counts_by_reason": {},
+            "issue_counts_by_severity": {},
             "sample_issues": issues[:20],
             "error": str(exc),
         }
@@ -167,8 +172,7 @@ def validate_file(filename, expected_columns):
 
     try:
         with path.open("r", newline="", encoding="utf-8-sig") as handle:
-            reader = csv.reader(handle)
-            header = next(reader, None)
+            header = next(csv.reader(handle), None)
 
         if not header:
             return {
@@ -184,7 +188,6 @@ def validate_file(filename, expected_columns):
         })
         missing = sorted(set(expected_columns) - set(header))
         unexpected = sorted(set(header) - set(expected_columns))
-
         passed = not missing and not duplicates
 
         result = {
@@ -217,26 +220,33 @@ def validate_file(filename, expected_columns):
 
 
 def main():
-    results = {
-        filename: validate_file(filename, columns)
-        for filename, columns in EXPECTED_SCHEMAS.items()
-    }
+    try:
+        config = load_config()
+    except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
+        print(f"CONFIGURATION ERROR: {exc}")
+        return 1
+
+    results = {}
+    for filename, schema in config["schemas"].items():
+        results[filename] = validate_file(
+            filename, schema.get("required_columns", [])
+        )
 
     failed = any(result["status"] == "FAIL" for result in results.values())
 
     report = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "status": "FAIL" if failed else "PASS",
-        "unexpected_columns_policy": "WARN",
-        "row_value_policy": (
-            "WARN only; row-level issues do not block the ETL pipeline"
+        "configuration_version": config.get("version"),
+        "unexpected_columns_policy": config.get(
+            "unexpected_columns_policy", "WARN"
         ),
+        "row_value_policy": config.get("row_value_policy", "WARN"),
         "files": results,
     }
 
     REPORT.parent.mkdir(parents=True, exist_ok=True)
     REPORT.write_text(json.dumps(report, indent=2), encoding="utf-8")
-
     print(json.dumps(report, indent=2))
     print(f"\nSchema report saved to: {REPORT}")
     print(f"SCHEMA VALIDATION: {report['status']}")
