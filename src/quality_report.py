@@ -1,5 +1,4 @@
-
-from pathlib import Path
+﻿from pathlib import Path
 from datetime import datetime, timezone
 import json
 import sys
@@ -10,7 +9,33 @@ RAW = ROOT / "data" / "raw" / "transactions.csv"
 CUSTOMERS = ROOT / "data" / "processed" / "customers.parquet"
 TRANSACTIONS = ROOT / "data" / "processed" / "transactions.parquet"
 QUARANTINE = ROOT / "data" / "quarantine" / "transactions.parquet"
+SOURCE_REPORT = ROOT / "data" / "processed" / "schema_validation_report.json"
 REPORT = ROOT / "data" / "processed" / "quality_report.json"
+
+
+def load_source_report():
+    if not SOURCE_REPORT.is_file():
+        return {
+            "status": "UNAVAILABLE",
+            "error": "Source validation report not found",
+        }
+
+    try:
+        with SOURCE_REPORT.open("r", encoding="utf-8-sig") as handle:
+            source_report = json.load(handle)
+
+        return {
+            "status": source_report.get("status", "UNKNOWN"),
+            "configuration_version": source_report.get(
+                "configuration_version"
+            ),
+            "files": source_report.get("files", {}),
+        }
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        return {
+            "status": "UNAVAILABLE",
+            "error": str(exc),
+        }
 
 
 def main():
@@ -104,9 +129,21 @@ def main():
             },
         }
 
+        source_report = load_source_report()
+
+        # Source row-level warnings are informational. A source report with
+        # blocking schema/configuration errors is not considered healthy.
+        source_status = source_report.get("status", "UNAVAILABLE")
+        source_blocked = source_status in {"FAIL", "UNAVAILABLE", "UNKNOWN"}
+
         report = {
             "generated_at_utc": datetime.now(timezone.utc).isoformat(),
-            "status": "PASS" if all(c["passed"] for c in checks.values()) else "FAIL",
+            "status": (
+                "PASS"
+                if all(c["passed"] for c in checks.values())
+                and not source_blocked
+                else "FAIL"
+            ),
             "raw_transaction_rows": raw_count,
             "deduplicated_transaction_rows": deduplicated,
             "customers_processed": customers,
@@ -114,6 +151,14 @@ def main():
             "quarantined_transactions": quarantined,
             "checks": checks,
             "quarantine_reasons": dict(reasons),
+            "source_validation": {
+                "status": source_status,
+                "configuration_version": source_report.get(
+                    "configuration_version"
+                ),
+                "files": source_report.get("files", {}),
+                "error": source_report.get("error"),
+            },
         }
     finally:
         con.close()
