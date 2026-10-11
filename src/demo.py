@@ -56,6 +56,7 @@ if args.upload_s3:
         print("\nFAILED: S3 Raw Data Ingestion")
         raise SystemExit(result.returncode)
 else:
-    print("\n>>> S3 upload skipped (pass --upload-s3 to enable).")
+    print("\n>>> S3 upload is handled separately by scripts\run_demo_with_report.ps1.")
 
 print("\nAll requested pipeline stages completed successfully.")
+

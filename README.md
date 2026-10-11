@@ -136,4 +136,40 @@ Run the pipeline and upload raw files after successful tests:
 - Automated unit tests and GitHub Actions CI.
 - Git version control.
 - Synthetic data only; no real banking data.
-- Cloud usage kept minimal and monitored against available AWS credits.
+- Cloud usage kept minimal and monitored against available AWS credits.## Running the Pipeline
+
+Use Python 3.12 and the project virtual environment.
+
+### 1. Local workflow
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run_demo_with_report.ps1
+```
+
+Runs the ETL pipeline, incremental processing, quality reporting, anomaly detection, analytics exports, automated tests, and ingestion health report. S3 upload is disabled by default.
+
+### 2. Workflow with S3 ingestion
+```powershell
+$env:BANKING_S3_BUCKET = "your-s3-bucket-name"
+powershell -ExecutionPolicy Bypass -File .\scripts\run_demo_with_report.ps1 -UploadS3
+```
+
+S3 ingestion calculates SHA-256 checksums, skips unchanged files, uploads changed or missing files, verifies uploads, and records results.
+
+### 3. Ingestion health report
+Generated reports and the local SQLite manifest are stored under `data/processed/`:
+- `ingestion_report.json` — ingestion health summary.
+- `s3_ingestion_audit.jsonl` — ingestion audit events.
+- `ingestion_manifest.db` — file status and checksum history.
+
+Run the report separately:
+```powershell
+.\.venv312\Scripts\python.exe src\manifest_report.py
+```
+
+### 4. Automated tests
+```powershell
+.\.venv312\Scripts\python.exe -m unittest discover -s tests -v
+```
+
+S3 tests use mocked AWS responses and do not upload real objects.
+
