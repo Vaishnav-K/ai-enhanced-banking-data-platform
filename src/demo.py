@@ -26,8 +26,37 @@ def utc_now():
 
 
 def run_command(command, cwd=ROOT):
-    """Execute a command and return its exit code."""
-    return subprocess.run(command, cwd=cwd, check=False).returncode
+    """Execute a command and return its exit code and diagnostic output."""
+    result = subprocess.run(
+        command,
+        cwd=cwd,
+        check=False,
+        capture_output=True,
+        text=True,
+        errors="replace",
+    )
+    return {
+        "exit_code": result.returncode,
+        "stdout": result.stdout or "",
+        "stderr": result.stderr or "",
+    }
+
+
+def summarize_process_output(result, max_chars=4000):
+    """Return bounded diagnostic text from subprocess output."""
+    parts = []
+    if result["stderr"].strip():
+        parts.append("STDERR:\\n" + result["stderr"].strip())
+    if result["stdout"].strip():
+        parts.append("STDOUT:\\n" + result["stdout"].strip())
+
+    if not parts:
+        return None
+
+    output = "\\n".join(parts)
+    if len(output) > max_chars:
+        output = output[:max_chars] + "\\n... output truncated ..."
+    return output
 
 
 
@@ -148,10 +177,23 @@ def run_stage(
         retryable_error = False
 
         try:
-            exit_code = run_command(command, cwd=cwd)
-            error = None if exit_code == 0 else (
-                f"Process exited with code {exit_code}"
-            )
+            process_result = run_command(command, cwd=cwd)
+
+            # Support older tests or callers that mock run_command with an
+            # integer exit code.
+            if isinstance(process_result, int):
+                exit_code = process_result
+                process_output = None
+            else:
+                exit_code = process_result["exit_code"]
+                process_output = summarize_process_output(process_result)
+
+            error = None
+            if exit_code != 0:
+                error = f"Process exited with code {exit_code}"
+                if process_output:
+                    error += "\\n" + process_output
+
             retryable_error = exit_code in retryable_exit_codes
         except OSError as exc:
             exit_code = -1
