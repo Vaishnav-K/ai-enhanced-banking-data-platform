@@ -40,7 +40,7 @@ class TestRecoveryReportCLI(unittest.TestCase):
                 "error": None,
             }],
         }
-        output = recovery_report.format_report(report)
+        output = recovery_report.format_report(report, details=True)
         self.assertIn("Attempt: 2", output)
         self.assertIn("Status: PASS", output)
         self.assertIn("S3 Raw Data Ingestion", output)

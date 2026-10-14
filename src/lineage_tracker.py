@@ -362,12 +362,22 @@ def get_interrupted_runs():
         return [dict(row) for row in rows]
 
 
-def get_recovery_report():
+def get_recovery_report(stale_after_minutes=60):
     """Summarize incomplete runs, failed stages, and retry history."""
+    if (
+        isinstance(stale_after_minutes, bool)
+        or not isinstance(stale_after_minutes, (int, float))
+        or stale_after_minutes <= 0
+    ):
+        raise ValueError("stale_after_minutes must be a positive number")
+
     initialize_lineage()
     initialize_attempt_table()
+    now = datetime.now(timezone.utc)
+    threshold_seconds = float(stale_after_minutes) * 60.0
+
     with closing(connect()) as conn:
-        interrupted = conn.execute(
+        rows = conn.execute(
             """
             SELECT run_id, pipeline_name, started_at_utc,
                    finished_at_utc, status, failure_stage
@@ -377,6 +387,32 @@ def get_recovery_report():
             ORDER BY started_at_utc
             """
         ).fetchall()
+
+        interrupted = []
+        for row in rows:
+            item = dict(row)
+            try:
+                started = datetime.fromisoformat(item["started_at_utc"])
+                if started.tzinfo is None:
+                    started = started.replace(tzinfo=timezone.utc)
+                age_seconds = max(
+                    0.0,
+                    (now - started.astimezone(timezone.utc)).total_seconds(),
+                )
+                item["age_seconds"] = round(age_seconds, 3)
+                item["age_minutes"] = round(age_seconds / 60.0, 2)
+                item["recovery_classification"] = (
+                    "POTENTIALLY_STALE"
+                    if age_seconds >= threshold_seconds
+                    else "RECENTLY_STARTED"
+                )
+                item["timestamp_parse_error"] = None
+            except (TypeError, ValueError, OverflowError) as exc:
+                item["age_seconds"] = None
+                item["age_minutes"] = None
+                item["recovery_classification"] = "UNKNOWN"
+                item["timestamp_parse_error"] = str(exc)
+            interrupted.append(item)
 
         failed_stages = conn.execute(
             """
@@ -404,7 +440,20 @@ def get_recovery_report():
         ).fetchall()
 
         return {
-            "interrupted_runs": [dict(row) for row in interrupted],
+            "interrupted_runs": interrupted,
             "failed_stages": [dict(row) for row in failed_stages],
             "attempt_history": [dict(row) for row in attempts],
+            "stale_after_minutes": float(stale_after_minutes),
+            "potentially_stale_count": sum(
+                r["recovery_classification"] == "POTENTIALLY_STALE"
+                for r in interrupted
+            ),
+            "recently_started_count": sum(
+                r["recovery_classification"] == "RECENTLY_STARTED"
+                for r in interrupted
+            ),
+            "unknown_age_count": sum(
+                r["recovery_classification"] == "UNKNOWN"
+                for r in interrupted
+            ),
         }
