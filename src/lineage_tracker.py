@@ -156,6 +156,91 @@ def get_run_artifacts(run_id):
     return [dict(row) for row in rows]
 
 
+
+def initialize_attempt_table():
+    """Create persistent storage for individual stage execution attempts."""
+    initialize_lineage()
+    with closing(connect()) as connection:
+        with connection:
+            connection.execute("""
+                CREATE TABLE IF NOT EXISTS pipeline_stage_attempts (
+                    run_id TEXT NOT NULL,
+                    stage_order INTEGER NOT NULL,
+                    attempt_number INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    started_at_utc TEXT,
+                    finished_at_utc TEXT,
+                    duration_seconds REAL NOT NULL DEFAULT 0,
+                    exit_code INTEGER,
+                    error TEXT,
+                    retryable INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY (run_id, stage_order, attempt_number),
+                    FOREIGN KEY (run_id, stage_order)
+                        REFERENCES pipeline_stage_runs(run_id, stage_order)
+                )
+            """)
+            connection.execute("""
+                CREATE INDEX IF NOT EXISTS idx_stage_attempts_run
+                ON pipeline_stage_attempts(run_id, stage_order)
+            """)
+
+
+def record_stage_attempt(run_id, stage_order, attempt):
+    """Persist one attempt after its parent stage summary has been recorded."""
+    initialize_attempt_table()
+
+    with closing(connect()) as connection:
+        with connection:
+            connection.execute("""
+                INSERT INTO pipeline_stage_attempts (
+                    run_id, stage_order, attempt_number, status,
+                    started_at_utc, finished_at_utc, duration_seconds,
+                    exit_code, error, retryable
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(run_id, stage_order, attempt_number)
+                DO UPDATE SET
+                    status=excluded.status,
+                    started_at_utc=excluded.started_at_utc,
+                    finished_at_utc=excluded.finished_at_utc,
+                    duration_seconds=excluded.duration_seconds,
+                    exit_code=excluded.exit_code,
+                    error=excluded.error,
+                    retryable=excluded.retryable
+            """, (
+                run_id,
+                stage_order,
+                attempt["attempt"],
+                attempt["status"],
+                attempt.get("started_at_utc"),
+                attempt.get("finished_at_utc"),
+                attempt.get("duration_seconds", 0),
+                attempt.get("exit_code"),
+                attempt.get("error"),
+                int(bool(attempt.get("retryable", False))),
+            ))
+
+
+def get_stage_attempts(run_id, stage_order=None):
+    """Return stored attempts for a run, optionally filtered by stage order."""
+    initialize_attempt_table()
+
+    with closing(connect()) as connection:
+        if stage_order is None:
+            rows = connection.execute("""
+                SELECT * FROM pipeline_stage_attempts
+                WHERE run_id=?
+                ORDER BY stage_order, attempt_number
+            """, (run_id,)).fetchall()
+        else:
+            rows = connection.execute("""
+                SELECT * FROM pipeline_stage_attempts
+                WHERE run_id=? AND stage_order=?
+                ORDER BY attempt_number
+            """, (run_id, stage_order)).fetchall()
+
+    return [dict(row) for row in rows]
+
+
 def start_run(pipeline_name):
     """Create a uniquely identified pipeline execution."""
     initialize_lineage()

@@ -5,7 +5,7 @@ import json
 import subprocess
 import sys
 import time
-from lineage_tracker import (start_run, record_stage, finish_run, record_artifact)
+from lineage_tracker import (start_run, record_stage, finish_run, record_artifact, record_stage_attempt)
 
 ROOT = Path(__file__).resolve().parent.parent
 PYTHON = sys.executable
@@ -252,6 +252,15 @@ def discover_changed_artifacts(before):
     )
 
 
+def record_stage_history(run_id, stages):
+    """Persist stage summaries and their individual retry attempts."""
+    for stage_order, stage in enumerate(stages, start=1):
+        record_stage(run_id, stage_order, stage)
+
+        for attempt in stage.get("attempts", []):
+            record_stage_attempt(run_id, stage_order, attempt)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description="Run the banking data pipeline with execution telemetry."
@@ -344,8 +353,7 @@ def main(argv=None):
         "stages": stages,
     }
 
-    for stage_order, stage in enumerate(stages, start=1):
-        record_stage(run_id, stage_order, stage)
+    record_stage_history(run_id, stages)
     finish_run(run_id, report)
 
     input_files = [
