@@ -33,8 +33,14 @@ jobs:
       - name: Generate synthetic banking data
         run: python src/generate_data.py
 
+      - name: Run DuckDB pipeline
+        run: python src/etl_pipeline.py
+
       - name: Run Spark pipeline
         run: python src/spark_pipeline.py
+
+      - name: Reconcile Spark against DuckDB
+        run: python src/compare_engines.py
 
       - name: Validate Spark output files
         run: python -m unittest discover -s tests -p "test_spark_output_contract.py" -v
@@ -47,3 +53,4 @@ jobs:
           path: data/spark_processed/
           if-no-files-found: warn
           retention-days: 7
+
