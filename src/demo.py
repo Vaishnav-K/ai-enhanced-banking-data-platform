@@ -30,34 +30,178 @@ def run_command(command, cwd=ROOT):
     return subprocess.run(command, cwd=cwd, check=False).returncode
 
 
-def run_stage(name, command, cwd=ROOT):
-    started_at = utc_now()
-    start_clock = time.perf_counter()
 
-    print(f"\n>>> {name}")
-    print("-" * 60)
+RETRY_POLICY_FILE = ROOT / "config" / "retry_policy.json"
+
+
+def load_retry_policy():
+    """Load retry defaults and per-stage overrides from JSON."""
+    import math
 
     try:
-        exit_code = run_command(command, cwd=cwd)
-        error = None if exit_code == 0 else (
-            f"Process exited with code {exit_code}"
+        policy = json.loads(
+            RETRY_POLICY_FILE.read_text(encoding="utf-8")
         )
-    except OSError as exc:
-        exit_code = -1
-        error = str(exc)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"Cannot load retry policy: {exc}") from exc
+
+    if policy.get("version") != 1:
+        raise ValueError("Unsupported retry policy version")
+
+    defaults = policy.get("default")
+    stages = policy.get("stages")
+
+    if not isinstance(defaults, dict) or not isinstance(stages, dict):
+        raise ValueError("Retry policy requires default and stages objects")
+
+    for label, settings in [("default", defaults), *stages.items()]:
+        if not isinstance(settings, dict):
+            raise ValueError(f"Retry settings for {label} must be an object")
+
+        attempts = settings.get("max_attempts", defaults.get("max_attempts"))
+        delay = settings.get(
+            "initial_delay_seconds",
+            defaults.get("initial_delay_seconds"),
+        )
+        multiplier = settings.get(
+            "backoff_multiplier",
+            defaults.get("backoff_multiplier", 2.0),
+        )
+        codes = settings.get(
+            "retryable_exit_codes",
+            defaults.get("retryable_exit_codes", []),
+        )
+
+        if (
+            not isinstance(attempts, int)
+            or isinstance(attempts, bool)
+            or attempts < 1
+        ):
+            raise ValueError(f"Invalid max_attempts for {label}")
+        if (
+            not isinstance(delay, (int, float))
+            or isinstance(delay, bool)
+            or not math.isfinite(delay)
+            or delay < 0
+        ):
+            raise ValueError(f"Invalid initial_delay_seconds for {label}")
+        if (
+            not isinstance(multiplier, (int, float))
+            or isinstance(multiplier, bool)
+            or not math.isfinite(multiplier)
+            or multiplier < 1
+        ):
+            raise ValueError(f"Invalid backoff_multiplier for {label}")
+        if (
+            not isinstance(codes, list)
+            or any(
+                not isinstance(code, int) or isinstance(code, bool)
+                for code in codes
+            )
+        ):
+            raise ValueError(f"Invalid retryable_exit_codes for {label}")
+
+    return policy
+
+
+def stage_retry_settings(policy, stage_name):
+    """Resolve stage-specific settings over the global defaults."""
+    settings = dict(policy["default"])
+    settings.update(policy["stages"].get(stage_name, {}))
+    return {
+        "max_attempts": settings["max_attempts"],
+        "retry_delay_seconds": settings["initial_delay_seconds"],
+        "backoff_multiplier": settings.get("backoff_multiplier", 2.0),
+        "retryable_exit_codes": set(settings["retryable_exit_codes"]),
+    }
+
+
+def run_stage(
+    name,
+    command,
+    cwd=ROOT,
+    max_attempts=3,
+    retry_delay_seconds=1.0,
+    retryable_exit_codes=(),
+    backoff_multiplier=2.0,
+):
+    """Execute a stage with bounded retries and exponential backoff."""
+    if not isinstance(max_attempts, int) or isinstance(max_attempts, bool):
+        raise ValueError("max_attempts must be a positive integer")
+    if max_attempts < 1:
+        raise ValueError("max_attempts must be at least 1")
+    if retry_delay_seconds < 0:
+        raise ValueError("retry_delay_seconds cannot be negative")
+    if backoff_multiplier < 1:
+        raise ValueError("backoff_multiplier must be at least 1")
+
+    started_at = utc_now()
+    start_clock = time.perf_counter()
+    attempts = []
+
+    print(f"\\n>>> {name}")
+    print("-" * 60)
+
+    for attempt_number in range(1, max_attempts + 1):
+        attempt_started_at = utc_now()
+        attempt_clock = time.perf_counter()
+        retryable_error = False
+
+        try:
+            exit_code = run_command(command, cwd=cwd)
+            error = None if exit_code == 0 else (
+                f"Process exited with code {exit_code}"
+            )
+            retryable_error = exit_code in retryable_exit_codes
+        except OSError as exc:
+            exit_code = -1
+            error = str(exc)
+            retryable_error = True
+
+        attempt_duration = round(time.perf_counter() - attempt_clock, 3)
+        attempts.append({
+            "attempt": attempt_number,
+            "started_at_utc": attempt_started_at,
+            "finished_at_utc": utc_now(),
+            "duration_seconds": attempt_duration,
+            "exit_code": exit_code,
+            "status": "PASS" if exit_code == 0 else "FAIL",
+            "error": error,
+            "retryable": retryable_error,
+        })
+
+        if exit_code == 0:
+            if attempt_number > 1:
+                print(f"{name} recovered on attempt {attempt_number}.")
+            break
+
+        print(f"Attempt {attempt_number}/{max_attempts} failed: {error}")
+
+        if not retryable_error:
+            print("Failure is not configured as retryable; stopping retries.")
+            break
+
+        if attempt_number < max_attempts:
+            delay = retry_delay_seconds * (backoff_multiplier ** (attempt_number - 1))
+            if delay:
+                print(f"Retrying in {delay:g} second(s).")
+                time.sleep(delay)
 
     duration = round(time.perf_counter() - start_clock, 3)
+    final_attempt = attempts[-1]
 
     return {
         "stage": name,
-        "status": "PASS" if exit_code == 0 else "FAIL",
+        "status": "PASS" if final_attempt["exit_code"] == 0 else "FAIL",
         "started_at_utc": started_at,
         "finished_at_utc": utc_now(),
         "duration_seconds": duration,
-        "exit_code": exit_code,
-        "error": error,
+        "exit_code": final_attempt["exit_code"],
+        "error": final_attempt["error"],
+        "attempt_count": len(attempts),
+        "max_attempts": max_attempts,
+        "attempts": attempts,
     }
-
 
 def write_report(report):
     REPORT.parent.mkdir(parents=True, exist_ok=True)
@@ -118,6 +262,7 @@ def main(argv=None):
         help="Upload raw CSV files to S3 after pipeline stages and tests pass.",
     )
     args = parser.parse_args(argv)
+    retry_policy = load_retry_policy()
 
     run_started = utc_now()
     run_id = start_run("AI-Enhanced Banking Data Platform")
@@ -132,7 +277,11 @@ def main(argv=None):
     print("=" * 60)
 
     for name, script in STEPS:
-        result = run_stage(name, [PYTHON, str(script)])
+        result = run_stage(
+            name,
+            [PYTHON, str(script)],
+            **stage_retry_settings(retry_policy, name),
+        )
         stages.append(result)
 
         if result["status"] == "FAIL":
@@ -147,6 +296,7 @@ def main(argv=None):
                 PYTHON, "-m", "unittest", "discover",
                 "-s", "tests", "-p", "test_*.py", "-v",
             ],
+            **stage_retry_settings(retry_policy, "Automated Tests"),
         )
         stages.append(result)
 
@@ -158,6 +308,7 @@ def main(argv=None):
         result = run_stage(
             "S3 Raw Data Ingestion",
             [PYTHON, str(ROOT / "src" / "s3_ingestion.py"), "--upload"],
+            **stage_retry_settings(retry_policy, "S3 Raw Data Ingestion"),
         )
         stages.append(result)
 

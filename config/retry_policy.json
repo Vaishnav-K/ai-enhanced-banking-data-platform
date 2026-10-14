@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "default": {
+    "max_attempts": 3,
+    "initial_delay_seconds": 1.0,
+    "backoff_multiplier": 2.0,
+    "retryable_exit_codes": [
+      75
+    ]
+  },
+  "stages": {
+    "Schema Validation": {
+      "max_attempts": 1,
+      "retryable_exit_codes": []
+    },
+    "Main ETL": {
+      "max_attempts": 1,
+      "retryable_exit_codes": []
+    },
+    "Incremental ETL": {
+      "max_attempts": 1,
+      "retryable_exit_codes": []
+    },
+    "Quality Report": {
+      "max_attempts": 1,
+      "retryable_exit_codes": []
+    },
+    "Anomaly Detection": {
+      "max_attempts": 1,
+      "retryable_exit_codes": []
+    },
+    "Analytics Exports": {
+      "max_attempts": 1,
+      "retryable_exit_codes": []
+    },
+    "Automated Tests": {
+      "max_attempts": 1,
+      "retryable_exit_codes": []
+    },
+    "S3 Raw Data Ingestion": {
+      "max_attempts": 3,
+      "retryable_exit_codes": [
+        75
+      ]
+    }
+  }
+}

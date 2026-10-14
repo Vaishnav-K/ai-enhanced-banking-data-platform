@@ -6,6 +6,7 @@ import json
 import os
 
 import boto3
+from botocore.config import Config
 from botocore.exceptions import ClientError
 
 if __package__:
@@ -54,7 +55,15 @@ def main():
         raise SystemExit(f"No CSV files found in {RAW_DIR}")
 
     initialize_manifest()
-    s3 = boto3.client("s3")
+    retry_config = Config(
+        retries={
+            "mode": "standard",
+            "total_max_attempts": 3,
+        },
+        connect_timeout=5,
+        read_timeout=30,
+    )
+    s3 = boto3.client("s3", config=retry_config)
     uploaded = skipped = verified = failed = 0
 
     for path in files:
