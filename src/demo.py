@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 from datetime import datetime, timezone
 import argparse
 import json
@@ -308,6 +308,11 @@ def main(argv=None):
         description="Run the banking data pipeline with execution telemetry."
     )
     parser.add_argument(
+        "--include-spark",
+        action="store_true",
+        help="Run Spark processing and cross-engine reconciliation.",
+    )
+    parser.add_argument(
         "--upload-s3",
         action="store_true",
         help="Upload raw CSV files to S3 after pipeline stages and tests pass.",
@@ -354,6 +359,56 @@ def main(argv=None):
         if result["status"] == "FAIL":
             overall_status = "FAIL"
             failure_stage = "Automated Tests"
+
+    if overall_status == "PASS" and args.include_spark:
+        import os
+
+        spark_python = os.environ.get("SPARK_PYTHON_EXECUTABLE", PYTHON)
+        os.environ["PYSPARK_PYTHON"] = spark_python
+        os.environ["PYSPARK_DRIVER_PYTHON"] = spark_python
+
+        spark_stages = [
+            ("Spark Processing", spark_python, ROOT / "src" / "spark_pipeline.py"),
+            ("Cross-Engine Reconciliation", PYTHON, ROOT / "src" / "compare_engines.py"),
+        ]
+
+        for name, interpreter, script in spark_stages:
+            result = run_stage(
+                name,
+                [interpreter, str(script)],
+                **stage_retry_settings(retry_policy, name),
+            )
+            stages.append(result)
+
+            if result["status"] == "FAIL":
+                overall_status = "FAIL"
+                failure_stage = name
+                break
+    elif not args.include_spark:
+        stages.extend([
+            {
+                "stage": "Spark Processing",
+                "status": "SKIPPED",
+                "started_at_utc": None,
+                "finished_at_utc": None,
+                "duration_seconds": 0,
+                "exit_code": None,
+                "error": None,
+                "reason": "Use --include-spark to enable Spark",
+                "attempts": [],
+            },
+            {
+                "stage": "Cross-Engine Reconciliation",
+                "status": "SKIPPED",
+                "started_at_utc": None,
+                "finished_at_utc": None,
+                "duration_seconds": 0,
+                "exit_code": None,
+                "error": None,
+                "reason": "Use --include-spark to enable reconciliation",
+                "attempts": [],
+            },
+        ])
 
     if overall_status == "PASS" and args.upload_s3:
         result = run_stage(

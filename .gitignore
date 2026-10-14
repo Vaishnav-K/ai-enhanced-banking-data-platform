@@ -24,3 +24,6 @@ data/quarantine/
 
 # Python 3.12 virtual environment
 .venv312/
+
+# Generated Spark outputs
+data/spark_processed/
