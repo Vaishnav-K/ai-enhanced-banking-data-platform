@@ -64,6 +64,98 @@ def initialize_lineage():
             """)
 
 
+
+def initialize_artifact_table():
+    """Create the table linking pipeline runs to their input/output files."""
+    initialize_lineage()
+    with closing(connect()) as connection:
+        with connection:
+            connection.execute("""
+                CREATE TABLE IF NOT EXISTS pipeline_artifacts (
+                    run_id TEXT NOT NULL,
+                    artifact_path TEXT NOT NULL,
+                    artifact_role TEXT NOT NULL,
+                    checksum_sha256 TEXT NOT NULL,
+                    size_bytes INTEGER NOT NULL,
+                    recorded_at_utc TEXT NOT NULL,
+                    PRIMARY KEY (run_id, artifact_path, artifact_role),
+                    FOREIGN KEY (run_id) REFERENCES pipeline_runs(run_id)
+                )
+            """)
+            connection.execute("""
+                CREATE INDEX IF NOT EXISTS idx_pipeline_artifacts_run
+                ON pipeline_artifacts(run_id)
+            """)
+
+
+def sha256_file(file_path):
+    """Calculate a file's SHA-256 checksum without loading it all into memory."""
+    import hashlib
+
+    digest = hashlib.sha256()
+    with Path(file_path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def record_artifact(run_id, file_path, role):
+    """Record an existing input or output file for a pipeline run."""
+    import os
+
+    if role not in ("INPUT", "OUTPUT"):
+        raise ValueError("role must be INPUT or OUTPUT")
+
+    path = Path(file_path).resolve()
+    if not path.is_file():
+        return False
+
+    initialize_artifact_table()
+    checksum = sha256_file(path)
+    size_bytes = path.stat().st_size
+
+    with closing(connect()) as connection:
+        with connection:
+            connection.execute("""
+                INSERT INTO pipeline_artifacts (
+                    run_id, artifact_path, artifact_role,
+                    checksum_sha256, size_bytes, recorded_at_utc
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(run_id, artifact_path, artifact_role)
+                DO UPDATE SET
+                    checksum_sha256 = excluded.checksum_sha256,
+                    size_bytes = excluded.size_bytes,
+                    recorded_at_utc = excluded.recorded_at_utc
+            """, (
+                run_id,
+                (
+            path.relative_to(ROOT).as_posix()
+            if path.is_relative_to(ROOT)
+            else str(path)
+        ),
+                role,
+                checksum,
+                size_bytes,
+                utc_now(),
+            ))
+    return True
+
+
+def get_run_artifacts(run_id):
+    """Return recorded input/output artifacts for a pipeline run."""
+    initialize_artifact_table()
+    with closing(connect()) as connection:
+        rows = connection.execute("""
+            SELECT artifact_path, artifact_role, checksum_sha256,
+                   size_bytes, recorded_at_utc
+            FROM pipeline_artifacts
+            WHERE run_id = ?
+            ORDER BY artifact_role, artifact_path
+        """, (run_id,)).fetchall()
+    return [dict(row) for row in rows]
+
+
 def start_run(pipeline_name):
     """Create a uniquely identified pipeline execution."""
     initialize_lineage()

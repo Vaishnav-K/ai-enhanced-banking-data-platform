@@ -5,7 +5,7 @@ import json
 import subprocess
 import sys
 import time
-from lineage_tracker import start_run, record_stage, finish_run
+from lineage_tracker import (start_run, record_stage, finish_run, record_artifact)
 
 ROOT = Path(__file__).resolve().parent.parent
 PYTHON = sys.executable
@@ -153,7 +153,38 @@ def main(argv=None):
     for stage_order, stage in enumerate(stages, start=1):
         record_stage(run_id, stage_order, stage)
     finish_run(run_id, report)
+
+    input_files = [
+        ROOT / "data" / "raw" / "customers.csv",
+        ROOT / "data" / "raw" / "transactions.csv",
+        ROOT / "data" / "raw" / "transactions_incremental.csv",
+    ]
+
+    output_files = [
+        ROOT / "data" / "processed" / "customers.parquet",
+        ROOT / "data" / "processed" / "transactions.parquet",
+        ROOT / "data" / "processed" / "transactions_incremental.parquet",
+        ROOT / "data" / "processed" / "schema_validation_report.json",
+        ROOT / "data" / "processed" / "quality_report.json",
+        ROOT / "data" / "processed" / "transaction_anomalies.json",
+        ROOT / "data" / "processed" / "pipeline_run_report.json",
+        ROOT / "data" / "processed" / "ingestion_report.json",
+        ROOT / "data" / "processed" / "customer_summary.csv",
+        ROOT / "data" / "processed" / "transaction_summary.csv",
+        ROOT / "data" / "processed" / "daily_transaction_summary.csv",
+        ROOT / "data" / "quarantine" / "transactions.parquet",
+        ROOT / "data" / "quarantine" / "transactions_incremental.parquet",
+    ]
+
+    for artifact in input_files:
+        record_artifact(run_id, artifact, "INPUT")
+
+    for artifact in output_files:
+        if artifact != REPORT:
+            record_artifact(run_id, artifact, "OUTPUT")
+
     write_report(report)
+    record_artifact(run_id, REPORT, "OUTPUT")
     print(f"PIPELINE STATUS: {overall_status}")
     print(f"Total duration: {report['total_duration_seconds']} seconds")
 
