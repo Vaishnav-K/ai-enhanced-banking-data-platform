@@ -343,3 +343,68 @@ if __name__ == "__main__":
     initialize_lineage()
     print(f"Lineage tables initialized in: {LINEAGE_DB}")
     print(f"Existing pipeline runs: {len(get_recent_runs(100000))}")
+
+
+def get_interrupted_runs():
+    """Return pipeline runs still marked RUNNING without a finish time."""
+    initialize_lineage()
+    with closing(connect()) as conn:
+        rows = conn.execute(
+            """
+            SELECT run_id, pipeline_name, started_at_utc,
+                   finished_at_utc, status, failure_stage
+            FROM pipeline_runs
+            WHERE status = 'RUNNING'
+              AND finished_at_utc IS NULL
+            ORDER BY started_at_utc
+            """
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
+def get_recovery_report():
+    """Summarize incomplete runs, failed stages, and retry history."""
+    initialize_lineage()
+    initialize_attempt_table()
+    with closing(connect()) as conn:
+        interrupted = conn.execute(
+            """
+            SELECT run_id, pipeline_name, started_at_utc,
+                   finished_at_utc, status, failure_stage
+            FROM pipeline_runs
+            WHERE status = 'RUNNING'
+              AND finished_at_utc IS NULL
+            ORDER BY started_at_utc
+            """
+        ).fetchall()
+
+        failed_stages = conn.execute(
+            """
+            SELECT s.run_id, r.pipeline_name, s.stage_order,
+                   s.stage_name, s.status, s.exit_code, s.error
+            FROM pipeline_stage_runs s
+            JOIN pipeline_runs r ON r.run_id = s.run_id
+            WHERE s.status = 'FAIL'
+            ORDER BY s.run_id, s.stage_order
+            """
+        ).fetchall()
+
+        attempts = conn.execute(
+            """
+            SELECT a.run_id, r.pipeline_name, a.stage_order,
+                   s.stage_name, a.attempt_number, a.status,
+                   a.exit_code, a.error, a.retryable
+            FROM pipeline_stage_attempts a
+            JOIN pipeline_runs r ON r.run_id = a.run_id
+            JOIN pipeline_stage_runs s
+              ON s.run_id = a.run_id
+             AND s.stage_order = a.stage_order
+            ORDER BY a.run_id, a.stage_order, a.attempt_number
+            """
+        ).fetchall()
+
+        return {
+            "interrupted_runs": [dict(row) for row in interrupted],
+            "failed_stages": [dict(row) for row in failed_stages],
+            "attempt_history": [dict(row) for row in attempts],
+        }
