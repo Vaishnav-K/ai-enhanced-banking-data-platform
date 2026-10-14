@@ -5,6 +5,7 @@ import json
 import subprocess
 import sys
 import time
+from lineage_tracker import start_run, record_stage, finish_run
 
 ROOT = Path(__file__).resolve().parent.parent
 PYTHON = sys.executable
@@ -76,6 +77,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     run_started = utc_now()
+    run_id = start_run("AI-Enhanced Banking Data Platform")
     overall_start = time.perf_counter()
     stages = []
     overall_status = "PASS"
@@ -133,6 +135,7 @@ def main(argv=None):
 
     report = {
         "pipeline": "AI-Enhanced Banking Data Platform",
+        "run_id": run_id,
         "run_started_at_utc": run_started,
         "run_finished_at_utc": utc_now(),
         "total_duration_seconds": round(
@@ -147,6 +150,9 @@ def main(argv=None):
         "stages": stages,
     }
 
+    for stage_order, stage in enumerate(stages, start=1):
+        record_stage(run_id, stage_order, stage)
+    finish_run(run_id, report)
     write_report(report)
     print(f"PIPELINE STATUS: {overall_status}")
     print(f"Total duration: {report['total_duration_seconds']} seconds")
