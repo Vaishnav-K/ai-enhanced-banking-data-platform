@@ -65,6 +65,49 @@ def write_report(report):
     print(f"\nPipeline run report saved to: {REPORT}")
 
 
+
+def snapshot_artifacts():
+    """Capture existing processed and quarantine files."""
+    roots = [
+        ROOT / "data" / "processed",
+        ROOT / "data" / "quarantine",
+    ]
+    snapshot = {}
+
+    for directory in roots:
+        if not directory.exists():
+            continue
+
+        for file_path in directory.rglob("*"):
+            if not file_path.is_file():
+                continue
+            if file_path.name == "ingestion_manifest.db":
+                continue
+            if file_path.name in (
+                "ingestion_manifest.db-wal",
+                "ingestion_manifest.db-shm",
+            ):
+                continue
+
+            stat = file_path.stat()
+            snapshot[file_path.resolve()] = (
+                stat.st_size,
+                stat.st_mtime_ns,
+            )
+
+    return snapshot
+
+
+def discover_changed_artifacts(before):
+    """Return files created or modified since the snapshot."""
+    after = snapshot_artifacts()
+    return sorted(
+        file_path
+        for file_path, signature in after.items()
+        if before.get(file_path) != signature
+    )
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description="Run the banking data pipeline with execution telemetry."
