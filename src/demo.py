@@ -17,6 +17,7 @@ STEPS = [
     ("Incremental ETL", ROOT / "src" / "incremental_pipeline.py"),
     ("Quality Report", ROOT / "src" / "quality_report.py"),
     ("Anomaly Detection", ROOT / "src" / "anomaly_detection.py"),
+    ("Data Quality Investigation", ROOT / "src" / "data_quality_investigator.py"),
     ("Analytics Exports", ROOT / "src" / "export_analytics.py"),
 ]
 
@@ -466,6 +467,7 @@ def main(argv=None):
         ROOT / "data" / "processed" / "schema_validation_report.json",
         ROOT / "data" / "processed" / "quality_report.json",
         ROOT / "data" / "processed" / "transaction_anomalies.json",
+        ROOT / "data" / "processed" / "quality_investigation_report.json",
         ROOT / "data" / "processed" / "pipeline_run_report.json",
         ROOT / "data" / "processed" / "ingestion_report.json",
         ROOT / "data" / "processed" / "customer_summary.csv",

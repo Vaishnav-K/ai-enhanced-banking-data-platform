@@ -1,4 +1,4 @@
-﻿import sys
+import sys
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -39,21 +39,26 @@ class TestQualityGateWorkflow(unittest.TestCase):
         self.assertEqual(result, 0)
         commands = [args[0] for args, kwargs in run_command.call_args_list]
 
-        # Six pipeline stages plus one automated test command.
-        self.assertEqual(len(commands), 7)
+        # Seven pipeline stages plus one automated test command.
+        self.assertEqual(len(commands), 8)
         self.assertTrue(commands[0][1].endswith("schema_validation.py"))
-        self.assertIn("unittest", commands[6])
+        investigator_commands = [
+            command for command in commands
+            if any(str(arg).endswith("data_quality_investigator.py") for arg in command)
+        ]
+        self.assertEqual(len(investigator_commands), 1)
+        self.assertIn("unittest", commands[-1])
 
     @patch("demo.run_command")
     def test_s3_is_not_run_when_tests_fail(self, run_command):
-        # Six pipeline stages pass, but automated tests fail.
-        run_command.side_effect = [0, 0, 0, 0, 0, 0, 1]
+        # Seven pipeline stages pass, but automated tests fail.
+        run_command.side_effect = [0, 0, 0, 0, 0, 0, 0, 1]
 
         with patch("builtins.print"):
             result = demo.main(["--upload-s3"])
 
         self.assertEqual(result, 1)
-        self.assertEqual(run_command.call_count, 7)
+        self.assertEqual(run_command.call_count, 8)
 
 
 if __name__ == "__main__":
