@@ -1,0 +1,306 @@
+{
+  "version": 1,
+  "description": "Declared dependencies for the AI-Enhanced Banking Data Platform.",
+  "nodes": [
+    {
+      "id": "raw_customers",
+      "type": "artifact",
+      "path": "data/raw/customers.csv"
+    },
+    {
+      "id": "raw_transactions",
+      "type": "artifact",
+      "path": "data/raw/transactions.csv"
+    },
+    {
+      "id": "raw_incremental",
+      "type": "artifact",
+      "path": "data/raw/transactions_incremental.csv"
+    },
+    {
+      "id": "schema_validation",
+      "type": "stage",
+      "stage_name": "Schema Validation"
+    },
+    {
+      "id": "main_etl",
+      "type": "stage",
+      "stage_name": "Main ETL"
+    },
+    {
+      "id": "incremental_etl",
+      "type": "stage",
+      "stage_name": "Incremental ETL"
+    },
+    {
+      "id": "quality_report",
+      "type": "stage",
+      "stage_name": "Quality Report"
+    },
+    {
+      "id": "anomaly_detection",
+      "type": "stage",
+      "stage_name": "Anomaly Detection"
+    },
+    {
+      "id": "quality_investigation",
+      "type": "stage",
+      "stage_name": "Data Quality Investigation"
+    },
+    {
+      "id": "analytics_exports",
+      "type": "stage",
+      "stage_name": "Analytics Exports"
+    },
+    {
+      "id": "customers_parquet",
+      "type": "artifact",
+      "path": "data/processed/customers.parquet"
+    },
+    {
+      "id": "transactions_parquet",
+      "type": "artifact",
+      "path": "data/processed/transactions.parquet"
+    },
+    {
+      "id": "incremental_parquet",
+      "type": "artifact",
+      "path": "data/processed/transactions_incremental.parquet"
+    },
+    {
+      "id": "schema_report",
+      "type": "artifact",
+      "path": "data/processed/schema_validation_report.json"
+    },
+    {
+      "id": "quality_json",
+      "type": "artifact",
+      "path": "data/processed/quality_report.json"
+    },
+    {
+      "id": "anomalies_json",
+      "type": "artifact",
+      "path": "data/processed/transaction_anomalies.json"
+    },
+    {
+      "id": "investigation_json",
+      "type": "artifact",
+      "path": "data/processed/quality_investigation_report.json"
+    },
+    {
+      "id": "customer_summary",
+      "type": "artifact",
+      "path": "data/processed/customer_transaction_summary.csv"
+    },
+    {
+      "id": "transaction_summary",
+      "type": "artifact",
+      "path": "data/processed/transaction_status_summary.csv"
+    },
+    {
+      "id": "daily_summary",
+      "type": "artifact",
+      "path": "data/processed/daily_transaction_summary.csv"
+    },
+    {
+      "id": "quarantine_main",
+      "type": "artifact",
+      "path": "data/quarantine/transactions.parquet"
+    },
+    {
+      "id": "quarantine_incremental",
+      "type": "artifact",
+      "path": "data/quarantine/transactions_incremental.parquet"
+    },
+    {
+      "id": "s3_ingestion",
+      "type": "stage",
+      "stage_name": "S3 Raw Data Ingestion"
+    },
+    {
+      "id": "pipeline_run_report",
+      "type": "artifact",
+      "path": "data/processed/pipeline_run_report.json"
+    },
+    {
+      "id": "ingestion_report",
+      "type": "artifact",
+      "path": "data/processed/ingestion_report.json"
+    },
+    {
+      "id": "pipeline_run",
+      "type": "stage",
+      "stage_name": "Pipeline Run"
+    }
+  ],
+  "edges": [
+    {
+      "from": "raw_customers",
+      "to": "schema_validation"
+    },
+    {
+      "from": "raw_transactions",
+      "to": "schema_validation"
+    },
+    {
+      "from": "schema_validation",
+      "to": "main_etl"
+    },
+    {
+      "from": "raw_customers",
+      "to": "main_etl"
+    },
+    {
+      "from": "raw_transactions",
+      "to": "main_etl"
+    },
+    {
+      "from": "raw_incremental",
+      "to": "incremental_etl"
+    },
+    {
+      "from": "main_etl",
+      "to": "quality_report"
+    },
+    {
+      "from": "main_etl",
+      "to": "anomaly_detection"
+    },
+    {
+      "from": "quality_report",
+      "to": "quality_investigation"
+    },
+    {
+      "from": "anomaly_detection",
+      "to": "quality_investigation"
+    },
+    {
+      "from": "main_etl",
+      "to": "analytics_exports"
+    },
+    {
+      "from": "main_etl",
+      "to": "customers_parquet"
+    },
+    {
+      "from": "main_etl",
+      "to": "transactions_parquet"
+    },
+    {
+      "from": "incremental_etl",
+      "to": "incremental_parquet"
+    },
+    {
+      "from": "schema_validation",
+      "to": "schema_report"
+    },
+    {
+      "from": "quality_report",
+      "to": "quality_json"
+    },
+    {
+      "from": "anomaly_detection",
+      "to": "anomalies_json"
+    },
+    {
+      "from": "quality_investigation",
+      "to": "investigation_json"
+    },
+    {
+      "from": "analytics_exports",
+      "to": "customer_summary"
+    },
+    {
+      "from": "analytics_exports",
+      "to": "transaction_summary"
+    },
+    {
+      "from": "analytics_exports",
+      "to": "daily_summary"
+    },
+    {
+      "from": "main_etl",
+      "to": "quarantine_main"
+    },
+    {
+      "from": "incremental_etl",
+      "to": "quarantine_incremental"
+    },
+    {
+      "from": "s3_ingestion",
+      "to": "ingestion_report"
+    },
+    {
+      "from": "customers_parquet",
+      "to": "incremental_etl"
+    },
+    {
+      "from": "transactions_parquet",
+      "to": "incremental_etl"
+    },
+    {
+      "from": "raw_transactions",
+      "to": "quality_report"
+    },
+    {
+      "from": "customers_parquet",
+      "to": "quality_report"
+    },
+    {
+      "from": "transactions_parquet",
+      "to": "quality_report"
+    },
+    {
+      "from": "quarantine_main",
+      "to": "quality_report"
+    },
+    {
+      "from": "schema_report",
+      "to": "quality_report"
+    },
+    {
+      "from": "transactions_parquet",
+      "to": "anomaly_detection"
+    },
+    {
+      "from": "transactions_parquet",
+      "to": "analytics_exports"
+    },
+    {
+      "from": "schema_validation",
+      "to": "pipeline_run"
+    },
+    {
+      "from": "main_etl",
+      "to": "pipeline_run"
+    },
+    {
+      "from": "incremental_etl",
+      "to": "pipeline_run"
+    },
+    {
+      "from": "quality_report",
+      "to": "pipeline_run"
+    },
+    {
+      "from": "anomaly_detection",
+      "to": "pipeline_run"
+    },
+    {
+      "from": "quality_investigation",
+      "to": "pipeline_run"
+    },
+    {
+      "from": "analytics_exports",
+      "to": "pipeline_run"
+    },
+    {
+      "from": "s3_ingestion",
+      "to": "pipeline_run"
+    },
+    {
+      "from": "pipeline_run",
+      "to": "pipeline_run_report"
+    }
+  ]
+}
