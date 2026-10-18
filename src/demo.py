@@ -5,7 +5,11 @@ import json
 import subprocess
 import sys
 import time
-from lineage_tracker import (start_run, record_stage, finish_run, record_artifact, record_stage_attempt)
+from lineage_tracker import (
+    start_run, record_stage, finish_run, record_artifact, record_stage_attempt,
+    initialize_stage_artifact_observation_table,
+    record_stage_artifact_observation,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 PYTHON = sys.executable
@@ -154,6 +158,8 @@ def run_stage(
     retry_delay_seconds=1.0,
     retryable_exit_codes=(),
     backoff_multiplier=2.0,
+    run_id=None,
+    stage_order=None,
 ):
     """Execute a stage with bounded retries and exponential backoff."""
     if not isinstance(max_attempts, int) or isinstance(max_attempts, bool):
@@ -176,6 +182,15 @@ def run_stage(
         attempt_started_at = utc_now()
         attempt_clock = time.perf_counter()
         retryable_error = False
+        capture_lineage = run_id is not None and stage_order is not None
+        before_artifacts = snapshot_artifacts() if capture_lineage else {}
+
+        if capture_lineage:
+            for artifact_path in declared_inputs_for_stage(name):
+                record_stage_artifact_observation(
+                    run_id, stage_order, name, attempt_number,
+                    ROOT / artifact_path, "INPUT", "DECLARED_INPUT"
+                )
 
         try:
             process_result = run_command(command, cwd=cwd)
@@ -200,6 +215,18 @@ def run_stage(
             exit_code = -1
             error = str(exc)
             retryable_error = True
+
+        if capture_lineage:
+            for artifact_path in discover_changed_artifacts(before_artifacts):
+                record_stage_artifact_observation(
+                    run_id, stage_order, name, attempt_number,
+                    artifact_path, "OUTPUT", "OBSERVED_CHANGE"
+                )
+            for artifact_path in declared_outputs_for_stage(name):
+                record_stage_artifact_observation(
+                    run_id, stage_order, name, attempt_number,
+                    ROOT / artifact_path, "OUTPUT", "DECLARED_OUTPUT"
+                )
 
         attempt_duration = round(time.perf_counter() - attempt_clock, 3)
         attempts.append({
@@ -251,6 +278,65 @@ def write_report(report):
     REPORT.write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(f"\nPipeline run report saved to: {REPORT}")
 
+
+
+def declared_inputs_for_stage(stage_name):
+    """Return direct artifact inputs, including outputs of directly upstream stages."""
+    config = json.loads(
+        (ROOT / "config" / "data_lineage.json").read_text(encoding="utf-8")
+    )
+    stage_ids = {
+        node["id"]: node.get("stage_name")
+        for node in config["nodes"] if node.get("type") == "stage"
+    }
+    target_ids = {
+        node_id for node_id, name in stage_ids.items()
+        if name == stage_name
+    }
+    artifact_paths = {
+        node["id"]: node["path"]
+        for node in config["nodes"]
+        if node.get("type") == "artifact" and node.get("path")
+    }
+
+    parents = {}
+    outputs = {}
+    for edge in config["edges"]:
+        parents.setdefault(edge["to"], []).append(edge["from"])
+        outputs.setdefault(edge["from"], []).append(edge["to"])
+
+    resolved = set()
+    for target_id in target_ids:
+        for parent_id in parents.get(target_id, []):
+            if parent_id in artifact_paths:
+                resolved.add(artifact_paths[parent_id])
+            elif parent_id in stage_ids:
+                for output_id in outputs.get(parent_id, []):
+                    if output_id in artifact_paths:
+                        resolved.add(artifact_paths[output_id])
+
+    return sorted(resolved)
+
+
+def declared_outputs_for_stage(stage_name):
+    """Return artifact paths declared as direct outputs of a stage."""
+    config = json.loads(
+        (ROOT / "config" / "data_lineage.json").read_text(encoding="utf-8")
+    )
+    stage_ids = {
+        node["id"] for node in config["nodes"]
+        if node.get("type") == "stage" and node.get("stage_name") == stage_name
+    }
+    artifacts = {
+        node["id"]: node["path"]
+        for node in config["nodes"]
+        if node.get("type") == "artifact" and node.get("path")
+    }
+    return sorted({
+        artifacts[edge["to"]]
+        for edge in config["edges"]
+        if edge["from"] in stage_ids and edge["to"] in artifacts
+    })
 
 
 def snapshot_artifacts():
@@ -323,6 +409,7 @@ def main(argv=None):
 
     run_started = utc_now()
     run_id = start_run("AI-Enhanced Banking Data Platform")
+    initialize_stage_artifact_observation_table()
     overall_start = time.perf_counter()
     stages = []
     overall_status = "PASS"
@@ -337,6 +424,8 @@ def main(argv=None):
         result = run_stage(
             name,
             [PYTHON, str(script)],
+            run_id=run_id,
+            stage_order=len(stages) + 1,
             **stage_retry_settings(retry_policy, name),
         )
         stages.append(result)

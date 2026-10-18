@@ -1,4 +1,4 @@
-﻿from contextlib import closing
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 import sqlite3
@@ -240,6 +240,119 @@ def get_stage_attempts(run_id, stage_order=None):
 
     return [dict(row) for row in rows]
 
+
+
+def initialize_stage_artifact_observation_table():
+    """Create storage for per-attempt stage artifact observations."""
+    with connect() as connection:
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS pipeline_stage_artifact_observations (
+                run_id TEXT NOT NULL,
+                stage_order INTEGER NOT NULL,
+                stage_name TEXT NOT NULL,
+                attempt_number INTEGER NOT NULL,
+                artifact_path TEXT NOT NULL,
+                artifact_role TEXT NOT NULL
+                    CHECK (artifact_role IN ('INPUT', 'OUTPUT')),
+                evidence_type TEXT NOT NULL
+                    CHECK (evidence_type IN ('DECLARED_INPUT', 'OBSERVED_CHANGE', 'DECLARED_OUTPUT')),
+                file_exists INTEGER NOT NULL CHECK (file_exists IN (0, 1)),
+                size_bytes INTEGER,
+                modified_at_ns INTEGER,
+                recorded_at_utc TEXT NOT NULL,
+                PRIMARY KEY (
+                    run_id, stage_order, attempt_number,
+                    artifact_path, artifact_role, evidence_type
+                ),
+                FOREIGN KEY (run_id) REFERENCES pipeline_runs(run_id)
+            )
+        """)
+
+
+def record_stage_artifact_observation(
+    run_id, stage_order, stage_name, attempt_number,
+    file_path, artifact_role, evidence_type,
+):
+    """Record declared input metadata or a file observed changing in an attempt."""
+    if artifact_role not in {"INPUT", "OUTPUT"}:
+        raise ValueError("artifact_role must be INPUT or OUTPUT")
+    if evidence_type not in {"DECLARED_INPUT", "OBSERVED_CHANGE", "DECLARED_OUTPUT"}:
+        raise ValueError("Unsupported evidence_type")
+    if evidence_type == "DECLARED_INPUT" and artifact_role != "INPUT":
+        raise ValueError("DECLARED_INPUT evidence must have role INPUT")
+    if evidence_type == "OBSERVED_CHANGE" and artifact_role != "OUTPUT":
+        raise ValueError("OBSERVED_CHANGE evidence must have role OUTPUT")
+
+    for value, label in (
+        (stage_order, "stage_order"),
+        (attempt_number, "attempt_number"),
+    ):
+        if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+            raise ValueError(f"{label} must be a positive integer")
+
+    path = Path(file_path).resolve()
+    try:
+        artifact_path = path.relative_to(ROOT).as_posix()
+    except ValueError:
+        artifact_path = path.as_posix()
+
+    exists = path.is_file()
+    size_bytes = None
+    modified_at_ns = None
+    if exists:
+        stat = path.stat()
+        size_bytes = stat.st_size
+        modified_at_ns = stat.st_mtime_ns
+
+    with connect() as connection:
+        connection.execute("""
+            INSERT INTO pipeline_stage_artifact_observations (
+                run_id, stage_order, stage_name, attempt_number,
+                artifact_path, artifact_role, evidence_type,
+                file_exists, size_bytes, modified_at_ns, recorded_at_utc
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (
+                run_id, stage_order, attempt_number,
+                artifact_path, artifact_role, evidence_type
+            ) DO UPDATE SET
+                stage_name = excluded.stage_name,
+                file_exists = excluded.file_exists,
+                size_bytes = excluded.size_bytes,
+                modified_at_ns = excluded.modified_at_ns,
+                recorded_at_utc = excluded.recorded_at_utc
+        """, (
+            run_id, stage_order, stage_name, attempt_number,
+            artifact_path, artifact_role, evidence_type,
+            int(exists), size_bytes, modified_at_ns, utc_now(),
+        ))
+
+
+def get_stage_artifact_observations(run_id, stage_order=None):
+    """Return stage artifact observations in deterministic order."""
+    query = """
+        SELECT run_id, stage_order, stage_name, attempt_number,
+               artifact_path, artifact_role, evidence_type,
+               file_exists, size_bytes, modified_at_ns, recorded_at_utc
+        FROM pipeline_stage_artifact_observations
+        WHERE run_id = ?
+    """
+    parameters = [run_id]
+    if stage_order is not None:
+        query += " AND stage_order = ?"
+        parameters.append(stage_order)
+    query += """
+        ORDER BY stage_order, attempt_number, artifact_role,
+                 artifact_path, evidence_type
+    """
+    with connect() as connection:
+        rows = connection.execute(query, parameters).fetchall()
+
+    columns = (
+        "run_id", "stage_order", "stage_name", "attempt_number",
+        "artifact_path", "artifact_role", "evidence_type",
+        "file_exists", "size_bytes", "modified_at_ns", "recorded_at_utc",
+    )
+    return [dict(zip(columns, row)) for row in rows]
 
 def start_run(pipeline_name):
     """Create a uniquely identified pipeline execution."""
