@@ -530,11 +530,33 @@ def get_recovery_report(stale_after_minutes=60):
                     else "RECENTLY_STARTED"
                 )
                 item["timestamp_parse_error"] = None
+                evidence_counts = (
+                    item["stage_record_count"],
+                    item["attempt_record_count"],
+                    item["artifact_record_count"],
+                    item["artifact_observation_count"],
+                )
+                item["evidence_classification"] = (
+                    "NO_RECORDED_EVIDENCE"
+                    if not any(evidence_counts)
+                    else "PARTIAL_OR_RECORDED_EVIDENCE"
+                )
             except (TypeError, ValueError, OverflowError) as exc:
                 item["age_seconds"] = None
                 item["age_minutes"] = None
                 item["recovery_classification"] = "UNKNOWN"
                 item["timestamp_parse_error"] = str(exc)
+                evidence_counts = (
+                    item["stage_record_count"],
+                    item["attempt_record_count"],
+                    item["artifact_record_count"],
+                    item["artifact_observation_count"],
+                )
+                item["evidence_classification"] = (
+                    "NO_RECORDED_EVIDENCE"
+                    if not any(evidence_counts)
+                    else "PARTIAL_OR_RECORDED_EVIDENCE"
+                )
             interrupted.append(item)
 
         failed_stages = conn.execute(
