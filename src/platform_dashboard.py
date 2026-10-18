@@ -151,6 +151,23 @@ def render_dashboard(report):
             '<p>No unfinished runs were found in the available recovery evidence.</p>'
         )
 
+    decision_events = recovery.get("decision_events", [])
+    if decision_events:
+        recovery_decision_html = "".join(
+            '<article class="action recovery-decision">'
+            f'<strong>{esc(item["decision"])}</strong>'
+            f'<p>Run ID: {esc(item["run_id"])}</p>'
+            f'<p>Reason: {esc(item["reason"])}</p>'
+            f'<p>Recorded by: {esc(item["recorded_by"])}</p>'
+            f'<p>Recorded at (UTC): {esc(item["recorded_at_utc"])}</p>'
+            '</article>'
+            for item in decision_events
+        )
+    else:
+        recovery_decision_html = (
+            '<p>No human recovery decisions have been recorded.</p>'
+        )
+
     quality_dimensions = report["data_quality"]
     quality_detail_html = "".join(
         '<article class="action">'
@@ -315,6 +332,9 @@ a:focus-visible, button:focus-visible {{ outline: 2px solid #86b7ff; outline-off
   </div>
   <p id="recovery-count" class="result-count" aria-live="polite"></p>
   <section id="recovery-list">{recovery_detail_html}</section>
+  <h2 id="recovery-decisions">Human recovery decision history</h2>
+  <p class="muted">Append-only audit history. Recording a decision does not execute a retry or change pipeline status.</p>
+  <section id="recovery-decision-list">{recovery_decision_html}</section>
   {_render_pipeline_reliability_breakdown()}
 <h2 id="failure-hotspots">Failure hotspot details</h2>
   <div class="toolbar">

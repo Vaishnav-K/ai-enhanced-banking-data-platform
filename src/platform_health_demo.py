@@ -16,6 +16,7 @@ from data_quality_regression import build_regression_report
 from data_quality_scorecard import build_scorecard
 from recovery_assessment import build_assessment
 from lineage_tracker import get_recovery_report
+from recovery_case_store import list_recovery_decisions
 
 
 def build_platform_health():
@@ -106,6 +107,7 @@ def build_platform_health():
             "recently_started_runs": platform_recovery["recently_started_count"],
             "unknown_age_runs": platform_recovery["unknown_age_count"],
             "lineage_discrepancies": len(recovery["runtime_lineage"]["discrepancies"]),
+            "decision_events": list_recovery_decisions(),
         },
         "prioritized_actions": actions,
         "safety": {
