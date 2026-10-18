@@ -1,4 +1,4 @@
-﻿"""Generate a self-contained HTML dashboard from platform health evidence."""
+"""Generate a self-contained HTML dashboard from platform health evidence."""
 import argparse
 import html
 import json
@@ -30,6 +30,31 @@ def render_dashboard(report):
         f'<article class="card"><div class="muted">{esc(label)}</div>'
         f'<div class="metric">{esc(value)}</div><div class="muted">{esc(note)}</div></article>'
         for label, value, note in cards
+    )
+
+    observability_details = build_observability_report()
+    hotspots = observability_details["failure_hotspots"]
+    if hotspots:
+        hotspot_html = "".join(
+            '<article class="action">'
+            f'<strong>{esc(item["stage_name"])}</strong>'
+            f'<p>Failures: {esc(item["failures"])} / {esc(item["executions"])} executions '
+            f'({esc(item["failure_rate_percent"])}%)</p>'
+            f'<small>Average duration: {esc(item["average_duration_seconds"])} seconds</small>'
+            '</article>'
+            for item in hotspots
+        )
+    else:
+        hotspot_html = '<p>No recorded stage failures were found in the available history.</p>'
+
+    quality_dimensions = report["data_quality"]
+    quality_detail_html = "".join(
+        '<article class="action">'
+        f'<strong>{esc(name.replace("_", " ").title())}</strong>'
+        f'<p>Score: {esc(item["score_percent"]) if item["score_percent"] is not None else "Unavailable"}</p>'
+        f'<small>Evidence source: {esc(item["source"] or "No matching recorded metric")}</small>'
+        '</article>'
+        for name, item in build_scorecard()["dimensions"].items()
     )
 
     actions = report["prioritized_actions"]
@@ -107,6 +132,10 @@ footer {{ margin-top: 28px; color: #aab9ca; font-size: 13px; }}
       </article>
     </div>
   </section>
+  <h2>Failure hotspot details</h2>
+  <section>{hotspot_html}</section>
+  <h2>Quality metric evidence</h2>
+  <section>{quality_detail_html}</section>
   <h2>Prioritized actions</h2>
   <section>{action_html}</section>
   <h2>Evidence payload</h2>
