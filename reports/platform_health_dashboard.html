@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Banking Data Platform | Health Dashboard</title>
+<style>
+:root { color-scheme: dark; font-family: Inter, Segoe UI, Arial, sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #101722; color: #edf2f7; }
+header { padding: 28px clamp(18px, 4vw, 52px); background: #182435; border-bottom: 1px solid #314156; }
+h1 { margin: 0 0 8px; font-size: clamp(24px, 3vw, 36px); }
+h2 { margin-top: 30px; font-size: 20px; }
+p { line-height: 1.55; }
+.muted, small { color: #aab9ca; }
+main { max-width: 1300px; margin: auto; padding: 24px clamp(18px, 4vw, 52px) 48px; }
+.status { display: inline-block; padding: 7px 11px; border: 1px solid #536a85; border-radius: 999px; font-size: 13px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+.card, .panel, .action { background: #182435; border: 1px solid #314156; border-radius: 12px; padding: 18px; }
+.metric { font-size: 30px; font-weight: 700; margin: 13px 0; overflow-wrap: anywhere; }
+.columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.action { margin: 10px 0; }
+.priority { display: inline-block; padding: 4px 8px; margin-right: 8px; border-radius: 6px; font-size: 11px; font-weight: 800; }
+.high { background: #5a2932; color: #ffbec7; }
+.medium { background: #57451f; color: #ffe0a0; }
+.low { background: #244738; color: #b5f0d0; }
+button { cursor: pointer; border: 1px solid #536a85; background: #263951; color: white; border-radius: 8px; padding: 10px 14px; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 420px; overflow: auto; padding: 16px; background: #0c121b; border-radius: 8px; }
+footer { margin-top: 28px; color: #aab9ca; font-size: 13px; }
+main { max-width: 1440px; margin: 0 auto; padding: 28px clamp(16px, 4vw, 52px) 48px; }
+.card, .panel, .action { border: 1px solid #314156; box-shadow: 0 8px 24px #00000018; }
+.card:hover, .action:hover { border-color: #6d91bd; }
+.dashboard-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 24px; padding: 12px; background: #101722; border: 1px solid #314156; border-radius: 12px; }
+.dashboard-nav a { color: #cfe2ff; text-decoration: none; border: 1px solid #405673; border-radius: 8px; padding: 8px 11px; font-size: 13px; }
+.dashboard-nav a:hover, .dashboard-nav a:focus-visible { background: #263951; outline: 2px solid #86b7ff; outline-offset: 2px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0 16px; }
+.toolbar input, .toolbar select { min-height: 40px; max-width: 100%; background: #0c121b; color: #edf2f7; border: 1px solid #536a85; border-radius: 8px; padding: 9px 12px; }
+.toolbar input { flex: 1 1 240px; }
+.toolbar label { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: #b9c7d8; font-size: 13px; }
+.result-count { color: #aab9ca; font-size: 13px; margin: 8px 0; }
+[hidden] { display: none !important; }
+a:focus-visible, button:focus-visible { outline: 2px solid #86b7ff; outline-offset: 3px; }
+@media (max-width: 700px) {
+  header { padding: 22px 16px; }
+  main { padding: 20px 14px 32px; }
+  .grid, .columns { grid-template-columns: 1fr; }
+  .dashboard-nav a { flex: 1 1 auto; text-align: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Banking Data Platform</h1>
+  <p class="muted">Pipeline observability · Data quality · Recovery intelligence</p>
+  <span class="status">Platform status: REVIEW</span>
+</header>
+<main>
+  <nav class="dashboard-nav" aria-label="Dashboard sections">
+    <a href="#executive-kpis">Overview</a>
+    <a href="#pipeline-health">Pipeline health</a>
+    <a href="#pipeline-reliability-breakdown">Reliability</a>
+    <a href="#failure-hotspots">Failure hotspots</a>
+    <a href="#quality-evidence">Quality evidence</a>
+    <a href="#prioritized-actions">Actions</a>
+  </nav>
+  <h2 id="executive-kpis">Executive KPIs</h2>
+  <section class="grid"><article class="card"><div class="muted">Pipeline success</div><div class="metric">37.5%</div><div class="muted">Recorded run history</div></article><article class="card"><div class="muted">Average duration</div><div class="metric">5.456 s</div><div class="muted">Recorded duration data</div></article><article class="card"><div class="muted">Quality score</div><div class="metric">99.98%</div><div class="muted">COMPLETE</div></article><article class="card"><div class="muted">Quality regressions</div><div class="metric">0</div><div class="muted">INSUFFICIENT_BASELINE</div></article><article class="card"><div class="muted">Lineage discrepancies</div><div class="metric">0</div><div class="muted">REVIEW</div></article></section>
+  <section class="columns">
+    <div>
+      <h2 id="pipeline-health">Pipeline health</h2>
+      <article class="panel">
+        <p>Recorded runs: <strong>144</strong></p>
+        <p>Failure hotspots: <strong>4</strong></p>
+        <p>Average run duration: <strong>5.456 seconds</strong></p>
+      </article>
+    </div>
+    <div>
+      <h2>Data quality and recovery</h2>
+      <article class="panel">
+        <p>Scorecard coverage: <strong>COMPLETE</strong></p>
+        <p>Trend status: <strong>INSUFFICIENT_HISTORICAL_REPORTS</strong></p>
+        <p>Recovery assessment: <strong>REVIEW</strong></p>
+        <p>Failed stages: <strong>0</strong></p>
+        <p>Unfinished runs: <strong>0</strong></p>
+      </article>
+    </div>
+  </section>
+  <section id="pipeline-reliability-breakdown"><h2>Pipeline reliability breakdown</h2><p>All recorded runs: 133 | Successes: 49 | Failures: 80 | Other statuses: 4 | Success rate: 36.84%</p><table><thead><tr><th>Pipeline</th><th>Total</th><th>Success</th><th>Failed</th><th>Other</th><th>Success rate</th></tr></thead><tbody><tr><td>AI-Enhanced Banking Data Platform</td><td>133</td><td>49</td><td>80</td><td>4</td><td>36.84%</td></tr></tbody></table><p><small>test_like is inferred from pipeline names only. Other runs are unclassified, not automatically production.</small></p></section>
+<h2 id="failure-hotspots">Failure hotspot details</h2>
+  <div class="toolbar">
+    <label for="hotspot-search">Search stages
+      <input id="hotspot-search" type="search" placeholder="e.g. Automated Tests" oninput="filterHotspotRate()">
+    </label>
+    <label for="hotspot-min-rate">Minimum failure rate
+      <select id="hotspot-min-rate" onchange="filterHotspotRate()">
+        <option value="0">All rates</option>
+        <option value="1">At least 1%</option>
+        <option value="10">At least 10%</option>
+        <option value="25">At least 25%</option>
+        <option value="40">At least 40%</option>
+      </select>
+    </label>
+  </div>
+  <p id="hotspot-count" class="result-count" aria-live="polite"></p>
+  <section id="hotspot-list"><article class="action"><strong>Quality Report</strong><p>Failures: 42 / 140 executions (30.0%)</p><small>Average duration: 0.394 seconds</small></article><article class="action"><strong>Automated Tests</strong><p>Failures: 40 / 96 executions (41.67%)</p><small>Average duration: 4.159 seconds</small></article><article class="action"><strong>Analytics Exports</strong><p>Failures: 2 / 98 executions (2.04%)</p><small>Average duration: 0.366 seconds</small></article><article class="action"><strong>Cross-Engine Reconciliation</strong><p>Failures: 2 / 124 executions (1.61%)</p><small>Average duration: 0.01 seconds</small></article></section>
+  <h2 id="quality-evidence">Quality metric evidence</h2>
+  <div class="toolbar">
+    <label for="quality-search">Search quality evidence
+      <input id="quality-search" type="search" placeholder="Metric or evidence filename" oninput="filterDashboardItems('quality-search','quality-list','quality-count')">
+    </label>
+  </div>
+  <p id="quality-count" class="result-count" aria-live="polite"></p>
+  <section id="quality-list"><article class="action"><strong>Completeness</strong><p>Score: 99.99</p><small>Evidence source: quality_report.json + schema_validation_report.json</small></article><article class="action"><strong>Validity</strong><p>Score: 99.97</p><small>Evidence source: quality_report.json</small></article><article class="action"><strong>Consistency</strong><p>Score: 100.0</p><small>Evidence source: quality_report.json</small></article><article class="action"><strong>Overall Quality</strong><p>Score: 99.96</p><small>Evidence source: quality_report.json</small></article></section>
+  <h2 id="prioritized-actions">Prioritized actions</h2>
+  <section><article class="action"><span class="priority medium">MEDIUM</span><strong>RELIABILITY</strong><p>Review stages with recorded failures and their error history.</p><small>4 evidence item(s)</small></article><article class="action"><span class="priority low">LOW</span><strong>HISTORICAL_COVERAGE</strong><p>Collect comparable quality reports over multiple runs before interpreting trends.</p><small>0 evidence item(s)</small></article></section>
+  <h2>Evidence payload</h2>
+  <p class="muted">The raw report is included for inspection and demonstration.</p>
+  <button onclick="const p=document.getElementById('payload'); p.hidden=!p.hidden; this.textContent=p.hidden?'Show raw JSON':'Hide raw JSON'">Show raw JSON</button>
+  <pre id="payload" hidden>{
+  &quot;report_type&quot;: &quot;BANKING_PLATFORM_EXECUTIVE_HEALTH&quot;,
+  &quot;status&quot;: &quot;REVIEW&quot;,
+  &quot;pipeline&quot;: {
+    &quot;total_runs&quot;: 144,
+    &quot;success_rate_percent&quot;: 37.5,
+    &quot;average_run_duration_seconds&quot;: 5.456,
+    &quot;failure_hotspot_count&quot;: 4
+  },
+  &quot;data_quality&quot;: {
+    &quot;scorecard_status&quot;: &quot;COMPLETE&quot;,
+    &quot;overall_score_percent&quot;: 99.98,
+    &quot;scored_dimensions&quot;: 4,
+    &quot;total_dimensions&quot;: 4,
+    &quot;regression_status&quot;: &quot;INSUFFICIENT_BASELINE&quot;,
+    &quot;regression_count&quot;: 0,
+    &quot;trend_status&quot;: &quot;INSUFFICIENT_HISTORICAL_REPORTS&quot;
+  },
+  &quot;recovery&quot;: {
+    &quot;assessment_status&quot;: &quot;REVIEW&quot;,
+    &quot;failed_stages&quot;: 0,
+    &quot;unfinished_runs&quot;: 0,
+    &quot;lineage_discrepancies&quot;: 0
+  },
+  &quot;prioritized_actions&quot;: [
+    {
+      &quot;priority&quot;: &quot;MEDIUM&quot;,
+      &quot;area&quot;: &quot;RELIABILITY&quot;,
+      &quot;action&quot;: &quot;Review stages with recorded failures and their error history.&quot;,
+      &quot;evidence_count&quot;: 4
+    },
+    {
+      &quot;priority&quot;: &quot;LOW&quot;,
+      &quot;area&quot;: &quot;HISTORICAL_COVERAGE&quot;,
+      &quot;action&quot;: &quot;Collect comparable quality reports over multiple runs before interpreting trends.&quot;,
+      &quot;evidence_count&quot;: 0
+    }
+  ],
+  &quot;safety&quot;: {
+    &quot;read_only&quot;: true,
+    &quot;automatic_retries&quot;: false,
+    &quot;automatic_remediation&quot;: false
+  },
+  &quot;limitations&quot;: [
+    &quot;Status reflects available recorded evidence, not proof that every component is healthy.&quot;,
+    &quot;Historical trends depend on the discovered report artifacts and their timestamps.&quot;,
+    &quot;A recorded retryable flag does not prove that retrying is safe.&quot;
+  ]
+}</pre>
+  <footer>Generated from recorded platform evidence. Read-only dashboard; no jobs are restarted and no pipeline data is modified. Metrics may be unavailable when source evidence is missing.</footer>
+</main>
+<script>
+"use strict";
+function filterDashboardItems(inputId, listId, countId) {
+  const query = document.getElementById(inputId).value.trim().toLowerCase();
+  const list = document.getElementById(listId);
+  const items = Array.from(list.children).filter(el => el.tagName === "ARTICLE");
+  let visible = 0;
+  items.forEach(item => {
+    const match = item.textContent.toLowerCase().includes(query);
+    item.hidden = !match;
+    if (match) visible++;
+  });
+  document.getElementById(countId).textContent =
+    items.length ? `${visible} of ${items.length} items shown` : "No evidence items available.";
+}
+function filterHotspotRate() {
+  const minimum = Number(document.getElementById("hotspot-min-rate").value);
+  const query = document.getElementById("hotspot-search").value.trim().toLowerCase();
+  const list = document.getElementById("hotspot-list");
+  const items = Array.from(list.children).filter(el => el.tagName === "ARTICLE");
+  let visible = 0;
+  items.forEach(item => {
+    const text = item.textContent.toLowerCase();
+    const rateMatch = text.match(/\(([0-9]+(?:\.[0-9]+)?)%\)/);
+    const rate = rateMatch ? Number(rateMatch[1]) : 0;
+    const show = text.includes(query) && rate >= minimum;
+    item.hidden = !show;
+    if (show) visible++;
+  });
+  document.getElementById("hotspot-count").textContent =
+    items.length ? `${visible} of ${items.length} hotspots shown` : "No failure hotspot evidence available.";
+}
+document.addEventListener("DOMContentLoaded", () => {
+  filterDashboardItems("quality-search", "quality-list", "quality-count");
+  filterHotspotRate();
+});
+</script>
+</body>
+</html>

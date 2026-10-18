@@ -22,6 +22,65 @@ ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_OUTPUT = ROOT / "reports" / "platform_health_dashboard.html"
 
 
+def _render_pipeline_reliability_breakdown():
+    """Render per-pipeline run counts without hiding historical failures."""
+    import html
+    import json
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    report_path = root / "reports" / "pipeline_reliability_breakdown.json"
+    if not report_path.exists():
+        return (
+            '<section><h2>Pipeline reliability breakdown</h2>'
+            '<p>Evidence unavailable: run the reliability breakdown report first.</p></section>'
+        )
+
+    try:
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return (
+            '<section><h2>Pipeline reliability breakdown</h2>'
+            '<p>Reliability evidence could not be read.</p></section>'
+        )
+
+    rows = []
+    for name, metrics in report.get("pipeline_breakdown", {}).items():
+        escaped_name = html.escape(str(name))
+        total = metrics.get("total", 0)
+        success = metrics.get("success", 0)
+        failed = metrics.get("failed", 0)
+        other = metrics.get("other", 0)
+        rate = metrics.get("success_rate_percent")
+        rate_text = f"{rate:.2f}%" if isinstance(rate, (int, float)) else "N/A"
+        rows.append(
+            "<tr>"
+            f"<td>{escaped_name}</td>"
+            f"<td>{total}</td><td>{success}</td><td>{failed}</td>"
+            f"<td>{other}</td><td>{rate_text}</td></tr>"
+        )
+
+    overall = report.get("overall", {})
+    overall_rate = overall.get("success_rate_percent")
+    overall_text = f"{overall_rate:.2f}%" if isinstance(overall_rate, (int, float)) else "N/A"
+    table_rows = "".join(rows) or '<tr><td colspan="6">No run records available</td></tr>'
+    note = html.escape(report.get("classification_note", "Classification limitations not supplied."))
+
+    return (
+        '<section id="pipeline-reliability-breakdown">'
+        '<h2>Pipeline reliability breakdown</h2>'
+        f'<p>All recorded runs: {overall.get("total", 0)} | '
+        f'Successes: {overall.get("success", 0)} | '
+        f'Failures: {overall.get("failed", 0)} | '
+        f'Other statuses: {overall.get("other", 0)} | '
+        f'Success rate: {overall_text}</p>'
+        '<table><thead><tr><th>Pipeline</th><th>Total</th><th>Success</th>'
+        '<th>Failed</th><th>Other</th><th>Success rate</th></tr></thead>'
+        f'<tbody>{table_rows}</tbody></table>'
+        f'<p><small>{note}</small></p>'
+        '</section>'
+    )
+
 def render_dashboard(report):
     def esc(value):
         return html.escape(str(value if value is not None else "Unavailable"))
@@ -84,6 +143,44 @@ def render_dashboard(report):
         action_html = '<p>No prioritized actions were generated from the available evidence.</p>'
 
     safe_json = json.dumps(report, indent=2, default=str).replace("</", "<\\/")
+
+    script_html = r"""<script>
+"use strict";
+function filterDashboardItems(inputId, listId, countId) {
+  const query = document.getElementById(inputId).value.trim().toLowerCase();
+  const list = document.getElementById(listId);
+  const items = Array.from(list.children).filter(el => el.tagName === "ARTICLE");
+  let visible = 0;
+  items.forEach(item => {
+    const match = item.textContent.toLowerCase().includes(query);
+    item.hidden = !match;
+    if (match) visible++;
+  });
+  document.getElementById(countId).textContent =
+    items.length ? `${visible} of ${items.length} items shown` : "No evidence items available.";
+}
+function filterHotspotRate() {
+  const minimum = Number(document.getElementById("hotspot-min-rate").value);
+  const query = document.getElementById("hotspot-search").value.trim().toLowerCase();
+  const list = document.getElementById("hotspot-list");
+  const items = Array.from(list.children).filter(el => el.tagName === "ARTICLE");
+  let visible = 0;
+  items.forEach(item => {
+    const text = item.textContent.toLowerCase();
+    const rateMatch = text.match(/\(([0-9]+(?:\.[0-9]+)?)%\)/);
+    const rate = rateMatch ? Number(rateMatch[1]) : 0;
+    const show = text.includes(query) && rate >= minimum;
+    item.hidden = !show;
+    if (show) visible++;
+  });
+  document.getElementById("hotspot-count").textContent =
+    items.length ? `${visible} of ${items.length} hotspots shown` : "No failure hotspot evidence available.";
+}
+document.addEventListener("DOMContentLoaded", () => {
+  filterDashboardItems("quality-search", "quality-list", "quality-count");
+  filterHotspotRate();
+});
+</script>"""
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -113,6 +210,28 @@ main {{ max-width: 1300px; margin: auto; padding: 24px clamp(18px, 4vw, 52px) 48
 button {{ cursor: pointer; border: 1px solid #536a85; background: #263951; color: white; border-radius: 8px; padding: 10px 14px; }}
 pre {{ white-space: pre-wrap; overflow-wrap: anywhere; max-height: 420px; overflow: auto; padding: 16px; background: #0c121b; border-radius: 8px; }}
 footer {{ margin-top: 28px; color: #aab9ca; font-size: 13px; }}
+main {{ max-width: 1440px; margin: 0 auto; padding: 28px clamp(16px, 4vw, 52px) 48px; }}
+.card, .panel, .action {{ border: 1px solid #314156; box-shadow: 0 8px 24px #00000018; }}
+.card:hover, .action:hover {{ border-color: #6d91bd; }}
+.dashboard-nav {{ display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 24px; padding: 12px; background: #101722; border: 1px solid #314156; border-radius: 12px; }}
+.dashboard-nav a {{ color: #cfe2ff; text-decoration: none; border: 1px solid #405673; border-radius: 8px; padding: 8px 11px; font-size: 13px; }}
+.dashboard-nav a:hover, .dashboard-nav a:focus-visible {{ background: #263951; outline: 2px solid #86b7ff; outline-offset: 2px; }}
+.toolbar {{ display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0 16px; }}
+.toolbar input, .toolbar select {{ min-height: 40px; max-width: 100%; background: #0c121b; color: #edf2f7; border: 1px solid #536a85; border-radius: 8px; padding: 9px 12px; }}
+.toolbar input {{ flex: 1 1 240px; }}
+.toolbar label {{ display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: #b9c7d8; font-size: 13px; }}
+.result-count {{ color: #aab9ca; font-size: 13px; margin: 8px 0; }}
+[hidden] {{ display: none !important; }}
+a:focus-visible, button:focus-visible {{ outline: 2px solid #86b7ff; outline-offset: 3px; }}
+@media (max-width: 700px) {{
+  header {{ padding: 22px 16px; }}
+  main {{ padding: 20px 14px 32px; }}
+  .grid, .columns {{ grid-template-columns: 1fr; }}
+  .dashboard-nav a {{ flex: 1 1 auto; text-align: center; }}
+}}
+@media (prefers-reduced-motion: reduce) {{
+  *, *::before, *::after {{ scroll-behavior: auto !important; transition: none !important; }}
+}}
 </style>
 </head>
 <body>
@@ -122,11 +241,19 @@ footer {{ margin-top: 28px; color: #aab9ca; font-size: 13px; }}
   <span class="status">Platform status: {esc(report["status"])}</span>
 </header>
 <main>
-  <h2>Executive KPIs</h2>
+  <nav class="dashboard-nav" aria-label="Dashboard sections">
+    <a href="#executive-kpis">Overview</a>
+    <a href="#pipeline-health">Pipeline health</a>
+    <a href="#pipeline-reliability-breakdown">Reliability</a>
+    <a href="#failure-hotspots">Failure hotspots</a>
+    <a href="#quality-evidence">Quality evidence</a>
+    <a href="#prioritized-actions">Actions</a>
+  </nav>
+  <h2 id="executive-kpis">Executive KPIs</h2>
   <section class="grid">{card_html}</section>
   <section class="columns">
     <div>
-      <h2>Pipeline health</h2>
+      <h2 id="pipeline-health">Pipeline health</h2>
       <article class="panel">
         <p>Recorded runs: <strong>{esc(pipeline["total_runs"])}</strong></p>
         <p>Failure hotspots: <strong>{esc(pipeline["failure_hotspot_count"])}</strong></p>
@@ -144,11 +271,33 @@ footer {{ margin-top: 28px; color: #aab9ca; font-size: 13px; }}
       </article>
     </div>
   </section>
-  <h2>Failure hotspot details</h2>
-  <section>{hotspot_html}</section>
-  <h2>Quality metric evidence</h2>
-  <section>{quality_detail_html}</section>
-  <h2>Prioritized actions</h2>
+  {_render_pipeline_reliability_breakdown()}
+<h2 id="failure-hotspots">Failure hotspot details</h2>
+  <div class="toolbar">
+    <label for="hotspot-search">Search stages
+      <input id="hotspot-search" type="search" placeholder="e.g. Automated Tests" oninput="filterHotspotRate()">
+    </label>
+    <label for="hotspot-min-rate">Minimum failure rate
+      <select id="hotspot-min-rate" onchange="filterHotspotRate()">
+        <option value="0">All rates</option>
+        <option value="1">At least 1%</option>
+        <option value="10">At least 10%</option>
+        <option value="25">At least 25%</option>
+        <option value="40">At least 40%</option>
+      </select>
+    </label>
+  </div>
+  <p id="hotspot-count" class="result-count" aria-live="polite"></p>
+  <section id="hotspot-list">{hotspot_html}</section>
+  <h2 id="quality-evidence">Quality metric evidence</h2>
+  <div class="toolbar">
+    <label for="quality-search">Search quality evidence
+      <input id="quality-search" type="search" placeholder="Metric or evidence filename" oninput="filterDashboardItems('quality-search','quality-list','quality-count')">
+    </label>
+  </div>
+  <p id="quality-count" class="result-count" aria-live="polite"></p>
+  <section id="quality-list">{quality_detail_html}</section>
+  <h2 id="prioritized-actions">Prioritized actions</h2>
   <section>{action_html}</section>
   <h2>Evidence payload</h2>
   <p class="muted">The raw report is included for inspection and demonstration.</p>
@@ -156,6 +305,7 @@ footer {{ margin-top: 28px; color: #aab9ca; font-size: 13px; }}
   <pre id="payload" hidden>{esc(safe_json)}</pre>
   <footer>Generated from recorded platform evidence. Read-only dashboard; no jobs are restarted and no pipeline data is modified. Metrics may be unavailable when source evidence is missing.</footer>
 </main>
+{script_html}
 </body>
 </html>"""
 
@@ -186,62 +336,4 @@ if __name__ == "__main__":
 
 
 # PIPELINE_RELIABILITY_BREAKDOWN_V1
-def _render_pipeline_reliability_breakdown():
-    """Render per-pipeline run counts without hiding historical failures."""
-    import html
-    import json
-    from pathlib import Path
-
-    root = Path(__file__).resolve().parent.parent
-    report_path = root / "reports" / "pipeline_reliability_breakdown.json"
-    if not report_path.exists():
-        return (
-            '<section><h2>Pipeline reliability breakdown</h2>'
-            '<p>Evidence unavailable: run the reliability breakdown report first.</p></section>'
-        )
-
-    try:
-        report = json.loads(report_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return (
-            '<section><h2>Pipeline reliability breakdown</h2>'
-            '<p>Reliability evidence could not be read.</p></section>'
-        )
-
-    rows = []
-    for name, metrics in report.get("pipeline_breakdown", {}).items():
-        escaped_name = html.escape(str(name))
-        total = metrics.get("total", 0)
-        success = metrics.get("success", 0)
-        failed = metrics.get("failed", 0)
-        other = metrics.get("other", 0)
-        rate = metrics.get("success_rate_percent")
-        rate_text = f"{rate:.2f}%" if isinstance(rate, (int, float)) else "N/A"
-        rows.append(
-            "<tr>"
-            f"<td>{escaped_name}</td>"
-            f"<td>{total}</td><td>{success}</td><td>{failed}</td>"
-            f"<td>{other}</td><td>{rate_text}</td></tr>"
-        )
-
-    overall = report.get("overall", {})
-    overall_rate = overall.get("success_rate_percent")
-    overall_text = f"{overall_rate:.2f}%" if isinstance(overall_rate, (int, float)) else "N/A"
-    table_rows = "".join(rows) or '<tr><td colspan="6">No run records available</td></tr>'
-    note = html.escape(report.get("classification_note", "Classification limitations not supplied."))
-
-    return (
-        '<section id="pipeline-reliability-breakdown">'
-        '<h2>Pipeline reliability breakdown</h2>'
-        f'<p>All recorded runs: {overall.get("total", 0)} | '
-        f'Successes: {overall.get("success", 0)} | '
-        f'Failures: {overall.get("failed", 0)} | '
-        f'Other statuses: {overall.get("other", 0)} | '
-        f'Success rate: {overall_text}</p>'
-        '<table><thead><tr><th>Pipeline</th><th>Total</th><th>Success</th>'
-        '<th>Failed</th><th>Other</th><th>Success rate</th></tr></thead>'
-        f'<tbody>{table_rows}</tbody></table>'
-        f'<p><small>{note}</small></p>'
-        '</section>'
-    )
 
