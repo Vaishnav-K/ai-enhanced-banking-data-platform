@@ -244,7 +244,7 @@ def get_stage_attempts(run_id, stage_order=None):
 
 def initialize_stage_artifact_observation_table():
     """Create storage for per-attempt stage artifact observations."""
-    with connect() as connection:
+    with closing(connect()) as connection:
         connection.execute("""
             CREATE TABLE IF NOT EXISTS pipeline_stage_artifact_observations (
                 run_id TEXT NOT NULL,
@@ -485,19 +485,29 @@ def get_recovery_report(stale_after_minutes=60):
         raise ValueError("stale_after_minutes must be a positive number")
 
     initialize_lineage()
+    initialize_artifact_table()
     initialize_attempt_table()
+    initialize_stage_artifact_observation_table()
     now = datetime.now(timezone.utc)
     threshold_seconds = float(stale_after_minutes) * 60.0
 
     with closing(connect()) as conn:
         rows = conn.execute(
             """
-            SELECT run_id, pipeline_name, started_at_utc,
-                   finished_at_utc, status, failure_stage
-            FROM pipeline_runs
-            WHERE status = 'RUNNING'
-              AND finished_at_utc IS NULL
-            ORDER BY started_at_utc
+            SELECT r.run_id, r.pipeline_name, r.started_at_utc,
+                   r.finished_at_utc, r.status, r.failure_stage,
+                   (SELECT COUNT(*) FROM pipeline_stage_runs s
+                    WHERE s.run_id = r.run_id) AS stage_record_count,
+                   (SELECT COUNT(*) FROM pipeline_stage_attempts a
+                    WHERE a.run_id = r.run_id) AS attempt_record_count,
+                   (SELECT COUNT(*) FROM pipeline_artifacts a
+                    WHERE a.run_id = r.run_id) AS artifact_record_count,
+                   (SELECT COUNT(*) FROM pipeline_stage_artifact_observations o
+                    WHERE o.run_id = r.run_id) AS artifact_observation_count
+            FROM pipeline_runs r
+            WHERE r.status = 'RUNNING'
+              AND r.finished_at_utc IS NULL
+            ORDER BY r.started_at_utc
             """
         ).fetchall()
 

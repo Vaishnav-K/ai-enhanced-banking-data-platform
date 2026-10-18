@@ -63,7 +63,8 @@ a:focus-visible, button:focus-visible { outline: 2px solid #86b7ff; outline-offs
     <a href="#pipeline-health">Pipeline health</a>
     <a href="#pipeline-reliability-breakdown">Reliability</a>
     <a href="#failure-hotspots">Failure hotspots</a>
-    <a href="#quality-evidence">Quality evidence</a>
+    <a href="#recovery-evidence">Recovery evidence</a>
+  <a href="#quality-evidence">Quality evidence</a>
     <a href="#prioritized-actions">Actions</a>
   </nav>
   <h2 id="executive-kpis">Executive KPIs</h2>
@@ -88,6 +89,15 @@ a:focus-visible, button:focus-visible { outline: 2px solid #86b7ff; outline-offs
       </article>
     </div>
   </section>
+  <h2 id="recovery-evidence">Unfinished run recovery evidence</h2>
+  <p class="muted">Age-based classifications identify runs for investigation; they do not prove the cause of interruption. This section is read-only.</p>
+  <div class="toolbar">
+    <label for="recovery-search">Search recovery evidence
+      <input id="recovery-search" type="search" placeholder="Run ID or classification" oninput="filterDashboardItems('recovery-search','recovery-list','recovery-count')">
+    </label>
+  </div>
+  <p id="recovery-count" class="result-count" aria-live="polite"></p>
+  <section id="recovery-list"><article class="action recovery-run"><strong>Run ID: 3cdbcb47-a3c8-447b-871b-90b6bed1211d</strong><p>Classification: <strong>POTENTIALLY_STALE</strong></p><p>Started: 2026-10-14T19:17:53.090302+00:00</p><p>Age: 5826.88 minutes</p><p>Recorded status: RUNNING</p><p>Stage records: 0 ? Attempts: 0</p><p>Artifacts: 0 ? Artifact observations: 0</p><p><strong>No stage or artifact evidence is recorded for this run.</strong></p></article><article class="action recovery-run"><strong>Run ID: 03c2737e-1ec7-4e80-ac3d-40855a269b8d</strong><p>Classification: <strong>POTENTIALLY_STALE</strong></p><p>Started: 2026-10-14T19:20:01.218330+00:00</p><p>Age: 5824.75 minutes</p><p>Recorded status: RUNNING</p><p>Stage records: 0 ? Attempts: 0</p><p>Artifacts: 0 ? Artifact observations: 0</p><p><strong>No stage or artifact evidence is recorded for this run.</strong></p></article><article class="action recovery-run"><strong>Run ID: 69ab7ea4-17df-47a6-b568-9e38cc1ce9de</strong><p>Classification: <strong>POTENTIALLY_STALE</strong></p><p>Started: 2026-10-14T19:21:13.727216+00:00</p><p>Age: 5823.54 minutes</p><p>Recorded status: RUNNING</p><p>Stage records: 0 ? Attempts: 0</p><p>Artifacts: 0 ? Artifact observations: 0</p><p><strong>No stage or artifact evidence is recorded for this run.</strong></p></article><article class="action recovery-run"><strong>Run ID: 05bee652-f0c6-4e34-86f0-81215029ffbc</strong><p>Classification: <strong>POTENTIALLY_STALE</strong></p><p>Started: 2026-10-14T19:24:00.334376+00:00</p><p>Age: 5820.76 minutes</p><p>Recorded status: RUNNING</p><p>Stage records: 0 ? Attempts: 0</p><p>Artifacts: 0 ? Artifact observations: 0</p><p><strong>No stage or artifact evidence is recorded for this run.</strong></p></article></section>
   <section id="pipeline-reliability-breakdown"><h2>Pipeline reliability breakdown</h2><p>All recorded runs: 144 | Successes: 54 | Failures: 86 | Other statuses: 4 | Success rate: 37.50%</p><table><thead><tr><th>Pipeline</th><th>Total</th><th>Success</th><th>Failed</th><th>Other</th><th>Success rate</th></tr></thead><tbody><tr><td>AI-Enhanced Banking Data Platform</td><td>144</td><td>54</td><td>86</td><td>4</td><td>37.50%</td></tr></tbody></table><p><small>Counts are generated from the current pipeline_runs table. Success rate uses successful runs divided by all recorded runs. test_like is inferred from pipeline names only. Other runs are unclassified, not automatically production.</small></p></section>
 <h2 id="failure-hotspots">Failure hotspot details</h2>
   <div class="toolbar">
@@ -141,6 +151,72 @@ a:focus-visible, button:focus-visible { outline: 2px solid #86b7ff; outline-offs
     &quot;assessment_status&quot;: &quot;REVIEW&quot;,
     &quot;failed_stages&quot;: 0,
     &quot;unfinished_runs&quot;: 4,
+    &quot;unfinished_run_details&quot;: [
+      {
+        &quot;run_id&quot;: &quot;3cdbcb47-a3c8-447b-871b-90b6bed1211d&quot;,
+        &quot;pipeline_name&quot;: &quot;AI-Enhanced Banking Data Platform&quot;,
+        &quot;started_at_utc&quot;: &quot;2026-10-14T19:17:53.090302+00:00&quot;,
+        &quot;finished_at_utc&quot;: null,
+        &quot;status&quot;: &quot;RUNNING&quot;,
+        &quot;failure_stage&quot;: null,
+        &quot;stage_record_count&quot;: 0,
+        &quot;attempt_record_count&quot;: 0,
+        &quot;artifact_record_count&quot;: 0,
+        &quot;artifact_observation_count&quot;: 0,
+        &quot;age_seconds&quot;: 349612.935,
+        &quot;age_minutes&quot;: 5826.88,
+        &quot;recovery_classification&quot;: &quot;POTENTIALLY_STALE&quot;,
+        &quot;timestamp_parse_error&quot;: null
+      },
+      {
+        &quot;run_id&quot;: &quot;03c2737e-1ec7-4e80-ac3d-40855a269b8d&quot;,
+        &quot;pipeline_name&quot;: &quot;AI-Enhanced Banking Data Platform&quot;,
+        &quot;started_at_utc&quot;: &quot;2026-10-14T19:20:01.218330+00:00&quot;,
+        &quot;finished_at_utc&quot;: null,
+        &quot;status&quot;: &quot;RUNNING&quot;,
+        &quot;failure_stage&quot;: null,
+        &quot;stage_record_count&quot;: 0,
+        &quot;attempt_record_count&quot;: 0,
+        &quot;artifact_record_count&quot;: 0,
+        &quot;artifact_observation_count&quot;: 0,
+        &quot;age_seconds&quot;: 349484.807,
+        &quot;age_minutes&quot;: 5824.75,
+        &quot;recovery_classification&quot;: &quot;POTENTIALLY_STALE&quot;,
+        &quot;timestamp_parse_error&quot;: null
+      },
+      {
+        &quot;run_id&quot;: &quot;69ab7ea4-17df-47a6-b568-9e38cc1ce9de&quot;,
+        &quot;pipeline_name&quot;: &quot;AI-Enhanced Banking Data Platform&quot;,
+        &quot;started_at_utc&quot;: &quot;2026-10-14T19:21:13.727216+00:00&quot;,
+        &quot;finished_at_utc&quot;: null,
+        &quot;status&quot;: &quot;RUNNING&quot;,
+        &quot;failure_stage&quot;: null,
+        &quot;stage_record_count&quot;: 0,
+        &quot;attempt_record_count&quot;: 0,
+        &quot;artifact_record_count&quot;: 0,
+        &quot;artifact_observation_count&quot;: 0,
+        &quot;age_seconds&quot;: 349412.298,
+        &quot;age_minutes&quot;: 5823.54,
+        &quot;recovery_classification&quot;: &quot;POTENTIALLY_STALE&quot;,
+        &quot;timestamp_parse_error&quot;: null
+      },
+      {
+        &quot;run_id&quot;: &quot;05bee652-f0c6-4e34-86f0-81215029ffbc&quot;,
+        &quot;pipeline_name&quot;: &quot;AI-Enhanced Banking Data Platform&quot;,
+        &quot;started_at_utc&quot;: &quot;2026-10-14T19:24:00.334376+00:00&quot;,
+        &quot;finished_at_utc&quot;: null,
+        &quot;status&quot;: &quot;RUNNING&quot;,
+        &quot;failure_stage&quot;: null,
+        &quot;stage_record_count&quot;: 0,
+        &quot;attempt_record_count&quot;: 0,
+        &quot;artifact_record_count&quot;: 0,
+        &quot;artifact_observation_count&quot;: 0,
+        &quot;age_seconds&quot;: 349245.691,
+        &quot;age_minutes&quot;: 5820.76,
+        &quot;recovery_classification&quot;: &quot;POTENTIALLY_STALE&quot;,
+        &quot;timestamp_parse_error&quot;: null
+      }
+    ],
     &quot;potentially_stale_runs&quot;: 4,
     &quot;recently_started_runs&quot;: 0,
     &quot;unknown_age_runs&quot;: 0,
@@ -213,6 +289,7 @@ function filterHotspotRate() {
 }
 document.addEventListener("DOMContentLoaded", () => {
   filterDashboardItems("quality-search", "quality-list", "quality-count");
+  filterDashboardItems("recovery-search", "recovery-list", "recovery-count");
   filterHotspotRate();
 });
 </script>

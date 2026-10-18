@@ -88,6 +88,7 @@ def render_dashboard(report):
     pipeline = report["pipeline"]
     quality = report["data_quality"]
     recovery = report["recovery"]
+    unfinished_details = recovery.get("unfinished_run_details", [])
 
     cards = [
         ("Pipeline success", f"{pipeline['success_rate_percent']}%", "Recorded run history"),
@@ -117,6 +118,38 @@ def render_dashboard(report):
         )
     else:
         hotspot_html = '<p>No recorded stage failures were found in the available history.</p>'
+
+    if unfinished_details:
+        recovery_detail_html = "".join(
+            '<article class="action recovery-run">'
+            f'<strong>Run ID: {esc(item["run_id"])}</strong>'
+            f'<p>Classification: <strong>{esc(item["recovery_classification"])}</strong></p>'
+            f'<p>Started: {esc(item["started_at_utc"])}</p>'
+            f'<p>Age: {esc(item["age_minutes"])} minutes</p>'
+            f'<p>Recorded status: {esc(item["status"])}</p>'
+            f'<p>Stage records: {esc(item["stage_record_count"])} ? '
+            f'Attempts: {esc(item["attempt_record_count"])}</p>'
+            f'<p>Artifacts: {esc(item["artifact_record_count"])} ? '
+            f'Artifact observations: {esc(item["artifact_observation_count"])}</p>'
+            + (
+                '<p><strong>No stage or artifact evidence is recorded for this run.</strong></p>'
+                if not any(item.get(key, 0) for key in (
+                    "stage_record_count", "attempt_record_count",
+                    "artifact_record_count", "artifact_observation_count"
+                ))
+                else ""
+            )
+            + (
+                f'<p>Timestamp parsing issue: {esc(item["timestamp_parse_error"])}</p>'
+                if item.get("timestamp_parse_error") else ""
+            )
+            + '</article>'
+            for item in unfinished_details
+        )
+    else:
+        recovery_detail_html = (
+            '<p>No unfinished runs were found in the available recovery evidence.</p>'
+        )
 
     quality_dimensions = report["data_quality"]
     quality_detail_html = "".join(
@@ -178,6 +211,7 @@ function filterHotspotRate() {
 }
 document.addEventListener("DOMContentLoaded", () => {
   filterDashboardItems("quality-search", "quality-list", "quality-count");
+  filterDashboardItems("recovery-search", "recovery-list", "recovery-count");
   filterHotspotRate();
 });
 </script>"""
@@ -246,7 +280,8 @@ a:focus-visible, button:focus-visible {{ outline: 2px solid #86b7ff; outline-off
     <a href="#pipeline-health">Pipeline health</a>
     <a href="#pipeline-reliability-breakdown">Reliability</a>
     <a href="#failure-hotspots">Failure hotspots</a>
-    <a href="#quality-evidence">Quality evidence</a>
+    <a href="#recovery-evidence">Recovery evidence</a>
+  <a href="#quality-evidence">Quality evidence</a>
     <a href="#prioritized-actions">Actions</a>
   </nav>
   <h2 id="executive-kpis">Executive KPIs</h2>
@@ -271,6 +306,15 @@ a:focus-visible, button:focus-visible {{ outline: 2px solid #86b7ff; outline-off
       </article>
     </div>
   </section>
+  <h2 id="recovery-evidence">Unfinished run recovery evidence</h2>
+  <p class="muted">Age-based classifications identify runs for investigation; they do not prove the cause of interruption. This section is read-only.</p>
+  <div class="toolbar">
+    <label for="recovery-search">Search recovery evidence
+      <input id="recovery-search" type="search" placeholder="Run ID or classification" oninput="filterDashboardItems('recovery-search','recovery-list','recovery-count')">
+    </label>
+  </div>
+  <p id="recovery-count" class="result-count" aria-live="polite"></p>
+  <section id="recovery-list">{recovery_detail_html}</section>
   {_render_pipeline_reliability_breakdown()}
 <h2 id="failure-hotspots">Failure hotspot details</h2>
   <div class="toolbar">

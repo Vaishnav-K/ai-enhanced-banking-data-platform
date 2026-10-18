@@ -101,6 +101,7 @@ def build_platform_health():
             "assessment_status": recovery["status"],
             "failed_stages": len(recovery["recovery"]["failed_stages"]),
             "unfinished_runs": len(unfinished_runs),
+            "unfinished_run_details": unfinished_runs,
             "potentially_stale_runs": platform_recovery["potentially_stale_count"],
             "recently_started_runs": platform_recovery["recently_started_count"],
             "unknown_age_runs": platform_recovery["unknown_age_count"],
