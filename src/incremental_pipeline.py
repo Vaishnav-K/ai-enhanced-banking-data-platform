@@ -58,6 +58,8 @@ try:
                     THEN 'DUPLICATE_IN_BATCH'
                 WHEN existing_id IS NOT NULL
                     THEN 'DUPLICATE_EXISTING_TRANSACTION'
+                WHEN prior_incremental_id IS NOT NULL
+                    THEN 'DUPLICATE_PRIOR_INCREMENTAL_TRANSACTION'
                 WHEN known_customer IS NULL
                     THEN 'UNKNOWN_CUSTOMER_ID'
                 ELSE NULL
@@ -75,24 +77,46 @@ try:
                     ORDER BY b.transaction_id
                 ) AS batch_duplicate,
                 e.transaction_id AS existing_id,
+                p.transaction_id AS prior_incremental_id,
                 c.customer_id AS known_customer
             FROM batch b
             LEFT JOIN read_parquet({sql_path(EXISTING)}) e
                 ON b.transaction_id = e.transaction_id
+            LEFT JOIN read_parquet({sql_path(PROCESSED)}) p
+                ON b.transaction_id = p.transaction_id
             LEFT JOIN read_parquet({sql_path(CUSTOMERS)}) c
                 ON b.customer_id = c.customer_id
         ) source
     """)
 
-    con.execute(f"""
-        COPY (
-            SELECT
-                transaction_id, customer_id, transaction_type,
-                amount, timestamp, status
-            FROM classified
-            WHERE rejection_reason IS NULL
-        ) TO {sql_path(PROCESSED)} (FORMAT PARQUET)
-    """)
+    temp_processed = Path(str(PROCESSED) + ".tmp.parquet")
+    try:
+        if PROCESSED.exists():
+            con.execute(f"""
+                COPY (
+                    SELECT transaction_id, customer_id, transaction_type,
+                           amount, timestamp, status
+                    FROM read_parquet({sql_path(PROCESSED)})
+                    UNION ALL
+                    SELECT transaction_id, customer_id, transaction_type,
+                           amount, timestamp, status
+                    FROM classified
+                    WHERE rejection_reason IS NULL
+                ) TO {sql_path(temp_processed)} (FORMAT PARQUET)
+            """)
+        else:
+            con.execute(f"""
+                COPY (
+                    SELECT transaction_id, customer_id, transaction_type,
+                           amount, timestamp, status
+                    FROM classified
+                    WHERE rejection_reason IS NULL
+                ) TO {sql_path(temp_processed)} (FORMAT PARQUET)
+            """)
+        temp_processed.replace(PROCESSED)
+    finally:
+        if temp_processed.exists():
+            temp_processed.unlink()
 
     con.execute(f"""
         COPY (
