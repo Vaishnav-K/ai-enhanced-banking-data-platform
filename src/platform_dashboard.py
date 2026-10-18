@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 
 from platform_health_demo import build_platform_health
+from pipeline_observability import build_observability_report
+from data_quality_scorecard import build_scorecard
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_OUTPUT = ROOT / "reports" / "platform_health_dashboard.html"
