@@ -173,3 +173,20 @@ Run the report separately:
 
 S3 tests use mocked AWS responses and do not upload real objects.
 
+
+## Portfolio Documentation
+
+- [Architecture diagram and design principles](docs/architecture.md)
+- [End-to-end demo walkthrough](docs/demo-walkthrough.md)
+- Dashboard generator: `src/platform_dashboard.py`
+- Executive health summary: `src/platform_health_demo.py`
+
+### Run the dashboard
+
+```powershell
+.\.venv312\Scripts\python.exe src\platform_dashboard.py
+```
+
+Open `reports/platform_health_dashboard.html` in your browser. The dashboard is generated from the local pipeline evidence and can be refreshed by rerunning the command.
+
+The project uses synthetic banking data. Review the documented limitations and actual runtime evidence before interpreting metrics as production guarantees.
