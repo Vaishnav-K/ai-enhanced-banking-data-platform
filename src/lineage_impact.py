@@ -1,4 +1,4 @@
-﻿"""Read-only downstream impact analysis based on declared lineage."""
+"""Read-only downstream impact analysis based on declared lineage."""
 import argparse
 import json
 from collections import deque

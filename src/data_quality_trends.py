@@ -1,4 +1,4 @@
-﻿"""Read-only historical data-quality trend analysis."""
+"""Read-only historical data-quality trend analysis."""
 import argparse
 import json
 import sqlite3

@@ -1,4 +1,4 @@
-﻿"""Read-only pipeline performance and reliability analytics."""
+"""Read-only pipeline performance and reliability analytics."""
 import argparse
 import json
 import sqlite3

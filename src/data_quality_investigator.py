@@ -1,4 +1,4 @@
-﻿"""Build an evidence-based investigation report from existing pipeline outputs."""
+"""Build an evidence-based investigation report from existing pipeline outputs."""
 from collections import Counter
 from datetime import datetime, timezone
 import json

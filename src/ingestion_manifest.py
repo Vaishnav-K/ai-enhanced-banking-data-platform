@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 from contextlib import closing
 import sqlite3
 from datetime import datetime, timezone

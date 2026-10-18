@@ -1,3 +1,10 @@
+
+# Support sibling imports in script and package execution.
+import sys as _src_import_sys
+from pathlib import Path as _src_import_path
+_src_import_dir = str(_src_import_path(__file__).resolve().parent)
+if _src_import_dir not in _src_import_sys.path:
+    _src_import_sys.path.insert(0, _src_import_dir)
 from pathlib import Path
 from datetime import datetime, timezone
 import argparse

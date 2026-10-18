@@ -1,9 +1,19 @@
-﻿"""Evidence-based banking data quality scorecard."""
+"""Evidence-based banking data quality scorecard."""
+
+# Support sibling imports in script and package execution.
+import sys as _src_import_sys
+from pathlib import Path as _src_import_path
+_src_import_dir = str(_src_import_path(__file__).resolve().parent)
+if _src_import_dir not in _src_import_sys.path:
+    _src_import_sys.path.insert(0, _src_import_dir)
 import argparse
 import json
 from pathlib import Path
 
-from data_quality_trends import build_quality_trends
+try:
+    from .data_quality_trends import build_quality_trends
+except ImportError:
+    from data_quality_trends import build_quality_trends
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_REPORT_DIR = ROOT / "data" / "processed"
@@ -161,3 +171,126 @@ def main(argv=None):
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+# EVIDENCE_BACKED_SCORECARD_INTEGRATION_V1
+_build_scorecard_before_evidence_integration = build_scorecard
+
+def build_scorecard(report_dir=DEFAULT_REPORT_DIR):
+    """Augment the existing scorecard with explicitly sourced pipeline metrics."""
+    import json
+    from pathlib import Path
+
+    report = _build_scorecard_before_evidence_integration(report_dir)
+    root = Path(__file__).resolve().parent.parent
+    quality_path = root / "data" / "processed" / "quality_report.json"
+    schema_path = root / "data" / "processed" / "schema_validation_report.json"
+
+    if not quality_path.exists() or not schema_path.exists():
+        return report
+
+    quality = json.loads(quality_path.read_text(encoding="utf-8"))
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+    def pct(numerator, denominator):
+        if not isinstance(numerator, (int, float)) or isinstance(numerator, bool):
+            return None
+        if not isinstance(denominator, (int, float)) or isinstance(denominator, bool) or denominator <= 0:
+            return None
+        return round(100.0 * numerator / denominator, 2)
+
+    raw = quality.get("raw_transaction_rows")
+    deduped = quality.get("deduplicated_transaction_rows")
+    valid = quality.get("valid_transactions")
+
+    missing_required = 0
+    for item in schema.get("files", {}).values():
+        validation = item.get("value_validation", {})
+        reasons = validation.get("issue_counts_by_reason", {})
+        count = reasons.get("MISSING_REQUIRED_VALUE", 0)
+        if isinstance(count, (int, float)) and not isinstance(count, bool):
+            missing_required += count
+
+    checks = quality.get("checks", {})
+    required_checks = (
+        "reconciliation",
+        "no_duplicate_valid_transaction_ids",
+        "valid_transactions_have_ids",
+        "valid_transactions_have_positive_amounts",
+        "valid_transactions_reference_known_customers",
+    )
+    observed = [
+        checks[name]["passed"]
+        for name in required_checks
+        if isinstance(checks.get(name), dict)
+        and isinstance(checks[name].get("passed"), bool)
+    ]
+    consistency = (
+        100.0 if len(observed) == len(required_checks) and all(observed)
+        else 0.0 if observed
+        else None
+    )
+
+    calculated = {
+        "completeness": (
+            pct(max(0, raw - missing_required), raw)
+            if isinstance(raw, (int, float)) and not isinstance(raw, bool)
+            else None
+        ),
+        "validity": pct(valid, deduped),
+        "consistency": consistency,
+        "overall_quality": pct(valid, raw),
+    }
+
+    # Retain the established structure and annotate only metrics with valid evidence.
+    metrics = report.setdefault("metrics", {})
+    for name, score in calculated.items():
+        if score is None:
+            continue
+        existing = metrics.setdefault(name, {})
+        if not isinstance(existing, dict):
+            existing = {"previous_value": existing}
+            metrics[name] = existing
+        existing["score"] = score
+        existing["evidence_source"] = (
+            "quality_report.json + schema_validation_report.json"
+            if name == "completeness"
+            else "quality_report.json"
+        )
+        existing["formula"] = {
+            "completeness": "100 * (raw rows - recorded missing required values) / raw rows",
+            "validity": "100 * valid transactions / deduplicated transaction rows",
+            "consistency": "100 only when all five recorded reconciliation/integrity checks pass",
+            "overall_quality": "100 * valid transactions / raw transaction rows",
+        }[name]
+
+    report["dimensions"] = {
+        name: {
+            "score_percent": score,
+            "evidence_available": score is not None,
+            "source": (
+                "quality_report.json + schema_validation_report.json"
+                if name == "completeness" else "quality_report.json"
+            ),
+        }
+        for name, score in calculated.items()
+    }
+    available_scores = [score for score in calculated.values() if score is not None]
+    report["scored_dimensions"] = len(available_scores)
+    report["total_dimensions"] = len(calculated)
+    report["overall_score_percent"] = (
+        round(sum(available_scores) / len(available_scores), 2)
+        if available_scores else None
+    )
+    report["coverage_status"] = (
+        "COMPLETE" if len(available_scores) == len(calculated)
+        else "PARTIAL" if available_scores else "INSUFFICIENT_EVIDENCE"
+    )
+    report["status"] = report["coverage_status"]
+    report["limitations"] = list(report.get("limitations", [])) + [
+        "Calculated completeness counts explicitly recorded missing-required-value issues only.",
+        "Validity and overall quality use row-count ratios, not a domain-specific risk score.",
+        "Consistency reflects the five recorded checks only.",
+    ]
+    return report
+

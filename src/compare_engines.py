@@ -1,4 +1,4 @@
-﻿import csv
+import csv
 import json
 import sys
 from collections import Counter

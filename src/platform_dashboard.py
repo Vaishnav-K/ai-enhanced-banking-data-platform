@@ -1,10 +1,20 @@
 """Generate a self-contained HTML dashboard from platform health evidence."""
+
+# Support sibling imports in script and package execution.
+import sys as _src_import_sys
+from pathlib import Path as _src_import_path
+_src_import_dir = str(_src_import_path(__file__).resolve().parent)
+if _src_import_dir not in _src_import_sys.path:
+    _src_import_sys.path.insert(0, _src_import_dir)
 import argparse
 import html
 import json
 from pathlib import Path
 
-from platform_health_demo import build_platform_health
+try:
+    from .platform_health_demo import build_platform_health
+except ImportError:
+    from platform_health_demo import build_platform_health
 from pipeline_observability import build_observability_report
 from data_quality_scorecard import build_scorecard
 
