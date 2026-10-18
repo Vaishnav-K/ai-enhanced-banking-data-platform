@@ -15,6 +15,7 @@ from data_quality_trends import build_quality_trends
 from data_quality_regression import build_regression_report
 from data_quality_scorecard import build_scorecard
 from recovery_assessment import build_assessment
+from lineage_tracker import get_recovery_report
 
 
 def build_platform_health():
@@ -24,6 +25,8 @@ def build_platform_health():
     regression = build_regression_report()
     scorecard = build_scorecard()
     recovery = build_assessment()
+    platform_recovery = get_recovery_report()
+    unfinished_runs = platform_recovery["interrupted_runs"]
 
     actions = []
     if regression["status"] == "REGRESSION_DETECTED":
@@ -33,7 +36,7 @@ def build_platform_health():
             "action": "Investigate detected quality regressions before downstream consumption.",
             "evidence_count": regression["regression_count"],
         })
-    if recovery["status"] == "ACTION_REQUIRED":
+    if recovery["status"] == "ACTION_REQUIRED" or unfinished_runs:
         actions.append({
             "priority": "HIGH",
             "area": "PIPELINE_RECOVERY",
@@ -41,7 +44,7 @@ def build_platform_health():
             "evidence_count": (
                 len(recovery["recovery"]["failed_stages"])
                 + len(recovery["runtime_lineage"]["discrepancies"])
-                + len(recovery["recovery"]["interrupted"])
+                + len(unfinished_runs)
             ),
         })
     if observability["failure_hotspots"]:
@@ -97,7 +100,10 @@ def build_platform_health():
         "recovery": {
             "assessment_status": recovery["status"],
             "failed_stages": len(recovery["recovery"]["failed_stages"]),
-            "unfinished_runs": len(recovery["recovery"]["interrupted"]),
+            "unfinished_runs": len(unfinished_runs),
+            "potentially_stale_runs": platform_recovery["potentially_stale_count"],
+            "recently_started_runs": platform_recovery["recently_started_count"],
+            "unknown_age_runs": platform_recovery["unknown_age_count"],
             "lineage_discrepancies": len(recovery["runtime_lineage"]["discrepancies"]),
         },
         "prioritized_actions": actions,

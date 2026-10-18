@@ -55,7 +55,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid #86b7ff; outline-offs
 <header>
   <h1>Banking Data Platform</h1>
   <p class="muted">Pipeline observability · Data quality · Recovery intelligence</p>
-  <span class="status">Platform status: REVIEW</span>
+  <span class="status">Platform status: ACTION_REQUIRED</span>
 </header>
 <main>
   <nav class="dashboard-nav" aria-label="Dashboard sections">
@@ -84,11 +84,11 @@ a:focus-visible, button:focus-visible { outline: 2px solid #86b7ff; outline-offs
         <p>Trend status: <strong>INSUFFICIENT_HISTORICAL_REPORTS</strong></p>
         <p>Recovery assessment: <strong>REVIEW</strong></p>
         <p>Failed stages: <strong>0</strong></p>
-        <p>Unfinished runs: <strong>0</strong></p>
+        <p>Unfinished runs: <strong>4</strong></p>
       </article>
     </div>
   </section>
-  <section id="pipeline-reliability-breakdown"><h2>Pipeline reliability breakdown</h2><p>All recorded runs: 133 | Successes: 49 | Failures: 80 | Other statuses: 4 | Success rate: 36.84%</p><table><thead><tr><th>Pipeline</th><th>Total</th><th>Success</th><th>Failed</th><th>Other</th><th>Success rate</th></tr></thead><tbody><tr><td>AI-Enhanced Banking Data Platform</td><td>133</td><td>49</td><td>80</td><td>4</td><td>36.84%</td></tr></tbody></table><p><small>test_like is inferred from pipeline names only. Other runs are unclassified, not automatically production.</small></p></section>
+  <section id="pipeline-reliability-breakdown"><h2>Pipeline reliability breakdown</h2><p>All recorded runs: 144 | Successes: 54 | Failures: 86 | Other statuses: 4 | Success rate: 37.50%</p><table><thead><tr><th>Pipeline</th><th>Total</th><th>Success</th><th>Failed</th><th>Other</th><th>Success rate</th></tr></thead><tbody><tr><td>AI-Enhanced Banking Data Platform</td><td>144</td><td>54</td><td>86</td><td>4</td><td>37.50%</td></tr></tbody></table><p><small>Counts are generated from the current pipeline_runs table. Success rate uses successful runs divided by all recorded runs. test_like is inferred from pipeline names only. Other runs are unclassified, not automatically production.</small></p></section>
 <h2 id="failure-hotspots">Failure hotspot details</h2>
   <div class="toolbar">
     <label for="hotspot-search">Search stages
@@ -115,13 +115,13 @@ a:focus-visible, button:focus-visible { outline: 2px solid #86b7ff; outline-offs
   <p id="quality-count" class="result-count" aria-live="polite"></p>
   <section id="quality-list"><article class="action"><strong>Completeness</strong><p>Score: 99.99</p><small>Evidence source: quality_report.json + schema_validation_report.json</small></article><article class="action"><strong>Validity</strong><p>Score: 99.97</p><small>Evidence source: quality_report.json</small></article><article class="action"><strong>Consistency</strong><p>Score: 100.0</p><small>Evidence source: quality_report.json</small></article><article class="action"><strong>Overall Quality</strong><p>Score: 99.96</p><small>Evidence source: quality_report.json</small></article></section>
   <h2 id="prioritized-actions">Prioritized actions</h2>
-  <section><article class="action"><span class="priority medium">MEDIUM</span><strong>RELIABILITY</strong><p>Review stages with recorded failures and their error history.</p><small>4 evidence item(s)</small></article><article class="action"><span class="priority low">LOW</span><strong>HISTORICAL_COVERAGE</strong><p>Collect comparable quality reports over multiple runs before interpreting trends.</p><small>0 evidence item(s)</small></article></section>
+  <section><article class="action"><span class="priority high">HIGH</span><strong>PIPELINE_RECOVERY</strong><p>Review failed runs and lineage discrepancies before deciding on recovery.</p><small>4 evidence item(s)</small></article><article class="action"><span class="priority medium">MEDIUM</span><strong>RELIABILITY</strong><p>Review stages with recorded failures and their error history.</p><small>4 evidence item(s)</small></article><article class="action"><span class="priority low">LOW</span><strong>HISTORICAL_COVERAGE</strong><p>Collect comparable quality reports over multiple runs before interpreting trends.</p><small>0 evidence item(s)</small></article></section>
   <h2>Evidence payload</h2>
   <p class="muted">The raw report is included for inspection and demonstration.</p>
   <button onclick="const p=document.getElementById('payload'); p.hidden=!p.hidden; this.textContent=p.hidden?'Show raw JSON':'Hide raw JSON'">Show raw JSON</button>
   <pre id="payload" hidden>{
   &quot;report_type&quot;: &quot;BANKING_PLATFORM_EXECUTIVE_HEALTH&quot;,
-  &quot;status&quot;: &quot;REVIEW&quot;,
+  &quot;status&quot;: &quot;ACTION_REQUIRED&quot;,
   &quot;pipeline&quot;: {
     &quot;total_runs&quot;: 144,
     &quot;success_rate_percent&quot;: 37.5,
@@ -140,10 +140,19 @@ a:focus-visible, button:focus-visible { outline: 2px solid #86b7ff; outline-offs
   &quot;recovery&quot;: {
     &quot;assessment_status&quot;: &quot;REVIEW&quot;,
     &quot;failed_stages&quot;: 0,
-    &quot;unfinished_runs&quot;: 0,
+    &quot;unfinished_runs&quot;: 4,
+    &quot;potentially_stale_runs&quot;: 4,
+    &quot;recently_started_runs&quot;: 0,
+    &quot;unknown_age_runs&quot;: 0,
     &quot;lineage_discrepancies&quot;: 0
   },
   &quot;prioritized_actions&quot;: [
+    {
+      &quot;priority&quot;: &quot;HIGH&quot;,
+      &quot;area&quot;: &quot;PIPELINE_RECOVERY&quot;,
+      &quot;action&quot;: &quot;Review failed runs and lineage discrepancies before deciding on recovery.&quot;,
+      &quot;evidence_count&quot;: 4
+    },
     {
       &quot;priority&quot;: &quot;MEDIUM&quot;,
       &quot;area&quot;: &quot;RELIABILITY&quot;,
