@@ -38,6 +38,12 @@ try:
         )
     """)
 
+    prior_incremental_sql = (
+        f"read_parquet({sql_path(PROCESSED)})"
+        if PROCESSED.exists()
+        else "(SELECT CAST(NULL AS VARCHAR) AS transaction_id WHERE FALSE)"
+    )
+
     con.execute(f"""
         CREATE VIEW classified AS
         SELECT source.*,
@@ -82,7 +88,7 @@ try:
             FROM batch b
             LEFT JOIN read_parquet({sql_path(EXISTING)}) e
                 ON b.transaction_id = e.transaction_id
-            LEFT JOIN read_parquet({sql_path(PROCESSED)}) p
+            LEFT JOIN {prior_incremental_sql} p
                 ON b.transaction_id = p.transaction_id
             LEFT JOIN read_parquet({sql_path(CUSTOMERS)}) c
                 ON b.customer_id = c.customer_id
