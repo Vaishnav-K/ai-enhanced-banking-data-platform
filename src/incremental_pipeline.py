@@ -128,6 +128,7 @@ try:
         COPY (
             SELECT * FROM classified
             WHERE rejection_reason IS NOT NULL
+              AND rejection_reason <> 'DUPLICATE_PRIOR_INCREMENTAL_TRANSACTION'
         ) TO {sql_path(QUARANTINE)} (FORMAT PARQUET)
     """)
 
