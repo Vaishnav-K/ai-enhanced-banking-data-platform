@@ -183,3 +183,65 @@ def main(argv=None):
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+# PIPELINE_RELIABILITY_BREAKDOWN_V1
+def _render_pipeline_reliability_breakdown():
+    """Render per-pipeline run counts without hiding historical failures."""
+    import html
+    import json
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    report_path = root / "reports" / "pipeline_reliability_breakdown.json"
+    if not report_path.exists():
+        return (
+            '<section><h2>Pipeline reliability breakdown</h2>'
+            '<p>Evidence unavailable: run the reliability breakdown report first.</p></section>'
+        )
+
+    try:
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return (
+            '<section><h2>Pipeline reliability breakdown</h2>'
+            '<p>Reliability evidence could not be read.</p></section>'
+        )
+
+    rows = []
+    for name, metrics in report.get("pipeline_breakdown", {}).items():
+        escaped_name = html.escape(str(name))
+        total = metrics.get("total", 0)
+        success = metrics.get("success", 0)
+        failed = metrics.get("failed", 0)
+        other = metrics.get("other", 0)
+        rate = metrics.get("success_rate_percent")
+        rate_text = f"{rate:.2f}%" if isinstance(rate, (int, float)) else "N/A"
+        rows.append(
+            "<tr>"
+            f"<td>{escaped_name}</td>"
+            f"<td>{total}</td><td>{success}</td><td>{failed}</td>"
+            f"<td>{other}</td><td>{rate_text}</td></tr>"
+        )
+
+    overall = report.get("overall", {})
+    overall_rate = overall.get("success_rate_percent")
+    overall_text = f"{overall_rate:.2f}%" if isinstance(overall_rate, (int, float)) else "N/A"
+    table_rows = "".join(rows) or '<tr><td colspan="6">No run records available</td></tr>'
+    note = html.escape(report.get("classification_note", "Classification limitations not supplied."))
+
+    return (
+        '<section id="pipeline-reliability-breakdown">'
+        '<h2>Pipeline reliability breakdown</h2>'
+        f'<p>All recorded runs: {overall.get("total", 0)} | '
+        f'Successes: {overall.get("success", 0)} | '
+        f'Failures: {overall.get("failed", 0)} | '
+        f'Other statuses: {overall.get("other", 0)} | '
+        f'Success rate: {overall_text}</p>'
+        '<table><thead><tr><th>Pipeline</th><th>Total</th><th>Success</th>'
+        '<th>Failed</th><th>Other</th><th>Success rate</th></tr></thead>'
+        f'<tbody>{table_rows}</tbody></table>'
+        f'<p><small>{note}</small></p>'
+        '</section>'
+    )
+
