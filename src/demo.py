@@ -416,63 +416,25 @@ def main(argv=None):
 
     run_started = utc_now()
     run_id = start_run("AI-Enhanced Banking Data Platform")
-    initialize_stage_artifact_observation_table()
-    overall_start = time.perf_counter()
-    stages = []
-    overall_status = "PASS"
-    failure_stage = None
+    stage_history_attempted = False
+    try:
+        initialize_stage_artifact_observation_table()
+        overall_start = time.perf_counter()
+        stages = []
+        overall_status = "PASS"
+        failure_stage = None
 
-    print("=" * 60)
-    print("AI-ENHANCED BANKING DATA PLATFORM")
-    print("PIPELINE OBSERVABILITY ENABLED")
-    print("=" * 60)
+        print("=" * 60)
+        print("AI-ENHANCED BANKING DATA PLATFORM")
+        print("PIPELINE OBSERVABILITY ENABLED")
+        print("=" * 60)
 
-    for name, script in STEPS:
-        result = run_stage(
-            name,
-            [PYTHON, str(script)],
-            run_id=run_id,
-            stage_order=len(stages) + 1,
-            **stage_retry_settings(retry_policy, name),
-        )
-        stages.append(result)
-
-        if result["status"] == "FAIL":
-            overall_status = "FAIL"
-            failure_stage = name
-            break
-
-    if overall_status == "PASS":
-        result = run_stage(
-            "Automated Tests",
-            [
-                PYTHON, "-m", "unittest", "discover",
-                "-s", "tests", "-p", "test_*.py", "-v",
-            ],
-            **stage_retry_settings(retry_policy, "Automated Tests"),
-        )
-        stages.append(result)
-
-        if result["status"] == "FAIL":
-            overall_status = "FAIL"
-            failure_stage = "Automated Tests"
-
-    if overall_status == "PASS" and args.include_spark:
-        import os
-
-        spark_python = os.environ.get("SPARK_PYTHON_EXECUTABLE", PYTHON)
-        os.environ["PYSPARK_PYTHON"] = spark_python
-        os.environ["PYSPARK_DRIVER_PYTHON"] = spark_python
-
-        spark_stages = [
-            ("Spark Processing", spark_python, ROOT / "src" / "spark_pipeline.py"),
-            ("Cross-Engine Reconciliation", PYTHON, ROOT / "src" / "compare_engines.py"),
-        ]
-
-        for name, interpreter, script in spark_stages:
+        for name, script in STEPS:
             result = run_stage(
                 name,
-                [interpreter, str(script)],
+                [PYTHON, str(script)],
+                run_id=run_id,
+                stage_order=len(stages) + 1,
                 **stage_retry_settings(retry_policy, name),
             )
             stages.append(result)
@@ -481,111 +443,193 @@ def main(argv=None):
                 overall_status = "FAIL"
                 failure_stage = name
                 break
-    elif not args.include_spark:
-        stages.extend([
-            {
-                "stage": "Spark Processing",
-                "status": "SKIPPED",
-                "started_at_utc": None,
-                "finished_at_utc": None,
-                "duration_seconds": 0,
-                "exit_code": None,
-                "error": None,
-                "reason": "Use --include-spark to enable Spark",
-                "attempts": [],
-            },
-            {
-                "stage": "Cross-Engine Reconciliation",
-                "status": "SKIPPED",
-                "started_at_utc": None,
-                "finished_at_utc": None,
-                "duration_seconds": 0,
-                "exit_code": None,
-                "error": None,
-                "reason": "Use --include-spark to enable reconciliation",
-                "attempts": [],
-            },
-        ])
 
-    if overall_status == "PASS" and args.upload_s3:
-        result = run_stage(
-            "S3 Raw Data Ingestion",
-            [PYTHON, str(ROOT / "src" / "s3_ingestion.py"), "--upload"],
-            **stage_retry_settings(retry_policy, "S3 Raw Data Ingestion"),
+        if overall_status == "PASS":
+            result = run_stage(
+                "Automated Tests",
+                [
+                    PYTHON, "-m", "unittest", "discover",
+                    "-s", "tests", "-p", "test_*.py", "-v",
+                ],
+                **stage_retry_settings(retry_policy, "Automated Tests"),
+            )
+            stages.append(result)
+
+            if result["status"] == "FAIL":
+                overall_status = "FAIL"
+                failure_stage = "Automated Tests"
+
+        if overall_status == "PASS" and args.include_spark:
+            import os
+
+            spark_python = os.environ.get("SPARK_PYTHON_EXECUTABLE", PYTHON)
+            os.environ["PYSPARK_PYTHON"] = spark_python
+            os.environ["PYSPARK_DRIVER_PYTHON"] = spark_python
+
+            spark_stages = [
+                ("Spark Processing", spark_python, ROOT / "src" / "spark_pipeline.py"),
+                ("Cross-Engine Reconciliation", PYTHON, ROOT / "src" / "compare_engines.py"),
+            ]
+
+            for name, interpreter, script in spark_stages:
+                result = run_stage(
+                    name,
+                    [interpreter, str(script)],
+                    **stage_retry_settings(retry_policy, name),
+                )
+                stages.append(result)
+
+                if result["status"] == "FAIL":
+                    overall_status = "FAIL"
+                    failure_stage = name
+                    break
+        elif not args.include_spark:
+            stages.extend([
+                {
+                    "stage": "Spark Processing",
+                    "status": "SKIPPED",
+                    "started_at_utc": None,
+                    "finished_at_utc": None,
+                    "duration_seconds": 0,
+                    "exit_code": None,
+                    "error": None,
+                    "reason": "Use --include-spark to enable Spark",
+                    "attempts": [],
+                },
+                {
+                    "stage": "Cross-Engine Reconciliation",
+                    "status": "SKIPPED",
+                    "started_at_utc": None,
+                    "finished_at_utc": None,
+                    "duration_seconds": 0,
+                    "exit_code": None,
+                    "error": None,
+                    "reason": "Use --include-spark to enable reconciliation",
+                    "attempts": [],
+                },
+            ])
+
+        if overall_status == "PASS" and args.upload_s3:
+            result = run_stage(
+                "S3 Raw Data Ingestion",
+                [PYTHON, str(ROOT / "src" / "s3_ingestion.py"), "--upload"],
+                **stage_retry_settings(retry_policy, "S3 Raw Data Ingestion"),
+            )
+            stages.append(result)
+
+            if result["status"] == "FAIL":
+                overall_status = "FAIL"
+                failure_stage = "S3 Raw Data Ingestion"
+        elif not args.upload_s3:
+            stages.append({
+                "stage": "S3 Raw Data Ingestion",
+                "status": "SKIPPED",
+                "started_at_utc": None,
+                "finished_at_utc": None,
+                "duration_seconds": 0,
+                "exit_code": None,
+                "error": None,
+                "reason": "S3 upload was not requested",
+            })
+
+        report = {
+            "pipeline": "AI-Enhanced Banking Data Platform",
+            "run_id": run_id,
+            "run_started_at_utc": run_started,
+            "run_finished_at_utc": utc_now(),
+            "total_duration_seconds": round(
+                time.perf_counter() - overall_start, 3
+            ),
+            "status": overall_status,
+            "failure_stage": failure_stage,
+            "stage_count": len(stages),
+            "passed_stages": sum(s["status"] == "PASS" for s in stages),
+            "failed_stages": sum(s["status"] == "FAIL" for s in stages),
+            "skipped_stages": sum(s["status"] == "SKIPPED" for s in stages),
+            "stages": stages,
+        }
+
+        stage_history_attempted = True
+        record_stage_history(run_id, stages)
+        finish_run(run_id, report)
+
+        input_files = [
+            ROOT / "data" / "raw" / "customers.csv",
+            ROOT / "data" / "raw" / "transactions.csv",
+            ROOT / "data" / "raw" / "transactions_incremental.csv",
+        ]
+
+        output_files = [
+            ROOT / "data" / "processed" / "customers.parquet",
+            ROOT / "data" / "processed" / "transactions.parquet",
+            ROOT / "data" / "processed" / "transactions_incremental.parquet",
+            ROOT / "data" / "processed" / "schema_validation_report.json",
+            ROOT / "data" / "processed" / "quality_report.json",
+            ROOT / "data" / "processed" / "transaction_anomalies.json",
+            ROOT / "data" / "processed" / "quality_investigation_report.json",
+            ROOT / "data" / "processed" / "pipeline_run_report.json",
+            ROOT / "data" / "processed" / "ingestion_report.json",
+            ROOT / "data" / "processed" / "customer_transaction_summary.csv",
+            ROOT / "data" / "processed" / "transaction_status_summary.csv",
+            ROOT / "data" / "processed" / "daily_transaction_summary.csv",
+            ROOT / "data" / "quarantine" / "transactions.parquet",
+            ROOT / "data" / "quarantine" / "transactions_incremental.parquet",
+        ]
+
+        for artifact in input_files:
+            record_artifact(run_id, artifact, "INPUT")
+
+        for artifact in output_files:
+            if artifact != REPORT:
+                record_artifact(run_id, artifact, "OUTPUT")
+
+        write_report(report)
+        record_artifact(run_id, REPORT, "OUTPUT")
+        print(f"PIPELINE STATUS: {overall_status}")
+        print(f"Total duration: {report['total_duration_seconds']} seconds")
+
+        return 0 if overall_status == "PASS" else 1
+    except Exception as exc:
+        # Preserve the original exception while attempting to finalize telemetry.
+        failure_time = utc_now()
+        elapsed = (
+            round(time.perf_counter() - overall_start, 3)
+            if "overall_start" in locals() else 0
         )
-        stages.append(result)
-
-        if result["status"] == "FAIL":
-            overall_status = "FAIL"
-            failure_stage = "S3 Raw Data Ingestion"
-    elif not args.upload_s3:
-        stages.append({
-            "stage": "S3 Raw Data Ingestion",
-            "status": "SKIPPED",
-            "started_at_utc": None,
-            "finished_at_utc": None,
-            "duration_seconds": 0,
-            "exit_code": None,
-            "error": None,
-            "reason": "S3 upload was not requested",
-        })
-
-    report = {
-        "pipeline": "AI-Enhanced Banking Data Platform",
-        "run_id": run_id,
-        "run_started_at_utc": run_started,
-        "run_finished_at_utc": utc_now(),
-        "total_duration_seconds": round(
-            time.perf_counter() - overall_start, 3
-        ),
-        "status": overall_status,
-        "failure_stage": failure_stage,
-        "stage_count": len(stages),
-        "passed_stages": sum(s["status"] == "PASS" for s in stages),
-        "failed_stages": sum(s["status"] == "FAIL" for s in stages),
-        "skipped_stages": sum(s["status"] == "SKIPPED" for s in stages),
-        "stages": stages,
-    }
-
-    record_stage_history(run_id, stages)
-    finish_run(run_id, report)
-
-    input_files = [
-        ROOT / "data" / "raw" / "customers.csv",
-        ROOT / "data" / "raw" / "transactions.csv",
-        ROOT / "data" / "raw" / "transactions_incremental.csv",
-    ]
-
-    output_files = [
-        ROOT / "data" / "processed" / "customers.parquet",
-        ROOT / "data" / "processed" / "transactions.parquet",
-        ROOT / "data" / "processed" / "transactions_incremental.parquet",
-        ROOT / "data" / "processed" / "schema_validation_report.json",
-        ROOT / "data" / "processed" / "quality_report.json",
-        ROOT / "data" / "processed" / "transaction_anomalies.json",
-        ROOT / "data" / "processed" / "quality_investigation_report.json",
-        ROOT / "data" / "processed" / "pipeline_run_report.json",
-        ROOT / "data" / "processed" / "ingestion_report.json",
-        ROOT / "data" / "processed" / "customer_transaction_summary.csv",
-        ROOT / "data" / "processed" / "transaction_status_summary.csv",
-        ROOT / "data" / "processed" / "daily_transaction_summary.csv",
-        ROOT / "data" / "quarantine" / "transactions.parquet",
-        ROOT / "data" / "quarantine" / "transactions_incremental.parquet",
-    ]
-
-    for artifact in input_files:
-        record_artifact(run_id, artifact, "INPUT")
-
-    for artifact in output_files:
-        if artifact != REPORT:
-            record_artifact(run_id, artifact, "OUTPUT")
-
-    write_report(report)
-    record_artifact(run_id, REPORT, "OUTPUT")
-    print(f"PIPELINE STATUS: {overall_status}")
-    print(f"Total duration: {report['total_duration_seconds']} seconds")
-
-    return 0 if overall_status == "PASS" else 1
+        recorded_stages = locals().get("stages", [])
+        run_started = locals().get("run_started", failure_time)
+        failure_report = {
+            "pipeline": "AI-Enhanced Banking Data Platform",
+            "run_id": run_id,
+            "run_started_at_utc": run_started,
+            "run_finished_at_utc": failure_time,
+            "total_duration_seconds": elapsed,
+            "status": "FAIL",
+            "failure_stage": (
+                f"Unexpected exception: {type(exc).__name__}: {str(exc)[:250]}"
+            ),
+            "stage_count": len(recorded_stages),
+            "passed_stages": sum(s.get("status") == "PASS" for s in recorded_stages),
+            "failed_stages": sum(s.get("status") == "FAIL" for s in recorded_stages),
+            "skipped_stages": sum(s.get("status") == "SKIPPED" for s in recorded_stages),
+            "stages": recorded_stages,
+            "unexpected_error": f"{type(exc).__name__}: {exc}",
+        }
+        try:
+            if recorded_stages and not stage_history_attempted:
+                stage_history_attempted = True
+                record_stage_history(run_id, recorded_stages)
+        except Exception as telemetry_exc:
+            print(f"WARNING: Could not persist stage history during exception handling: {telemetry_exc}", file=sys.stderr)
+        try:
+            finish_run(run_id, failure_report)
+        except Exception as telemetry_exc:
+            print(f"WARNING: Could not finalize failed run: {telemetry_exc}", file=sys.stderr)
+        try:
+            write_report(failure_report)
+        except Exception as telemetry_exc:
+            print(f"WARNING: Could not write failure report: {telemetry_exc}", file=sys.stderr)
+        raise
 
 
 if __name__ == "__main__":
