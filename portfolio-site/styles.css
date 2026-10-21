@@ -38,3 +38,38 @@ body {
 /* Brand and employer marks — direct repository update */
 .brand-name{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}.brand-divider{color:#a99bff;font-weight:500}.brand-role{color:#aebbd1;font-weight:700;letter-spacing:.09em}.project-company{display:flex;align-items:center;gap:10px;min-width:0}.company-caption{font:500 9px/1.4 'DM Mono',monospace;letter-spacing:.12em;color:#93a3c0}.company-wordmark{display:inline-flex;align-items:center;justify-content:center;color:#b5a8ff;line-height:1;flex-shrink:0}.citi-wordmark{font:800 21px/1 Arial,sans-serif;letter-spacing:-.08em;position:relative;padding:2px 3px 5px}.citi-arc{position:absolute;top:0;left:2px;width:23px;height:9px;border-top:2px solid #6bdcf2;border-radius:50% 50% 0 0;transform:translateY(-2px)}.bofa-wordmark svg{display:block;width:27px;height:21px;color:#83dfc1}.project-grid>.project-card:last-child{grid-column:1/-1}.project-grid>.project-card:last-child .project-note{max-width:760px}body{background:radial-gradient(ellipse at 0% 20%,rgba(132,93,235,.075),transparent 34%),radial-gradient(ellipse at 100% 65%,rgba(65,185,137,.05),transparent 32%),#090d19}
 @media(max-width:650px){.brand{gap:8px;font-size:10px}.brand-role{letter-spacing:.045em}.company-caption{font-size:8px;letter-spacing:.07em}.citi-wordmark{font-size:18px}}
+
+
+/* Senior Data Engineer portfolio: interactive architecture, filters and technical disclosures */
+.architecture-panel{border:1px solid var(--line);border-radius:14px;padding:24px;background:linear-gradient(125deg,rgba(20,29,51,.94),rgba(11,18,32,.96))}
+.architecture-flow{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding-bottom:22px;border-bottom:1px solid var(--line)}
+.stage-button{display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:9px;background:rgba(9,13,25,.5);color:#b7c5dc;padding:11px 13px;font:700 11px Manrope,system-ui,sans-serif;cursor:pointer;transition:background .2s,border-color .2s,transform .2s}
+.stage-button span{font:10px 'DM Mono',monospace;color:var(--cyan)}
+.stage-button:hover{border-color:rgba(107,220,242,.5);transform:translateY(-1px)}
+.stage-button.active{background:linear-gradient(120deg,rgba(169,155,255,.18),rgba(107,220,242,.12));border-color:rgba(107,220,242,.65);color:var(--text)}
+.flow-arrow{color:#657694;font-size:17px}
+.stage-detail{display:grid;grid-template-columns:1.1fr .9fr;gap:28px;padding:24px 2px 6px}
+.stage-detail-copy h3{font-size:22px;letter-spacing:-.035em;margin:10px 0}
+.stage-detail-copy p{font-size:12px;line-height:1.9;color:#a9b7ce;margin:0;max-width:600px}
+.stage-facts{display:grid;gap:12px}
+.stage-facts>div{display:flex;flex-direction:column;gap:4px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.stage-facts>div:last-child{border-bottom:0}
+.stage-facts span{font:9px 'DM Mono',monospace;letter-spacing:.08em;color:#7f91b0}
+.stage-facts strong{font-size:11px;color:#e0e8f8}
+.architecture-footnote{margin:14px 0 0;padding-top:13px;border-top:1px solid var(--line);font-size:9px;color:#7889a6}
+.project-filters{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 15px}
+.filter-button{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;background:rgba(17,25,43,.62);color:#aebbd1;padding:8px 12px;font:700 10px Manrope,system-ui,sans-serif;cursor:pointer}
+.filter-button:hover{border-color:rgba(169,155,255,.55);color:var(--text)}
+.filter-button.active{background:rgba(169,155,255,.14);border-color:rgba(169,155,255,.65);color:#dcd5ff}
+.filter-button span{font:9px 'DM Mono',monospace;color:var(--cyan)}
+.project-card[hidden]{display:none!important}
+.project-details{border-top:1px solid var(--line);margin-top:17px;padding-top:12px}
+.project-details summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;color:#bfcaff;font-size:10px;font-weight:800}
+.project-details summary::-webkit-details-marker{display:none}
+.project-details summary:after{content:"+";font-size:16px;color:var(--cyan)}
+.project-details[open] summary:after{content:"−"}
+.project-details>div{padding-top:8px}
+.project-details p{font-size:10px;line-height:1.85;color:#9eacc4;margin:8px 0}
+.project-details strong{color:#e2eaff}
+@media(max-width:760px){.architecture-panel{padding:16px}.architecture-flow{justify-content:flex-start}.flow-arrow{display:none}.stage-button{flex:1 1 125px;justify-content:flex-start}.stage-detail{grid-template-columns:1fr;gap:18px}.stage-detail-copy h3{font-size:20px}}
+@media(prefers-reduced-motion:reduce){.stage-button,.button{transition:none}html{scroll-behavior:auto}}
