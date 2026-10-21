@@ -140,27 +140,29 @@ filterButtons.forEach((button) => {
 })();
 
 
-/* Click-to-explore technology map: selectable nodes are mapped to the stack described on this portfolio. */
+/* Technology carousel: selected stack item rotates into the centre; graph root stays centred. */
 (() => {
-  const selectButtons = Array.from(document.querySelectorAll("[data-tech-select]"));
+  const wheel = document.getElementById("techWheel");
   const explorer = document.getElementById("technology-explorer");
   const graph = document.getElementById("technology-graph");
+  const overviewTrigger = document.getElementById("coreTechTrigger");
   const closeButton = document.getElementById("techMapClose");
-  if (!selectButtons.length || !explorer || !graph) return;
+  if (!wheel || !explorer || !graph || !overviewTrigger) return;
+
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const techButtons = Array.from(wheel.querySelectorAll(".technology-chip"));
+  const getButtonsInVisualOrder = () => Array.from(wheel.querySelectorAll(".technology-chip"));
   const views = {
     overview: {
       type:"STACK OVERVIEW",root:"Data Engineering Stack",title:"Connected delivery stack",
-      description:"The core technologies work together across ingestion, distributed processing, lakehouse storage, orchestration, cloud services, governance and data quality.",
-      nodes:[
-        ["Spark & PySpark","Batch + streaming"],["Databricks & Delta","Lakehouse processing"],["AWS data services","Storage + compute"],
-        ["Hadoop ecosystem","Distributed data"],["Airflow / Autosys","Scheduling + retries"],["Quality & lineage","Validation + traceability"]
-      ],tags:["Spark","Databricks","AWS","Hadoop","Airflow","Data Quality","Governance"]
+      description:"The technologies work together across ingestion, distributed processing, lakehouse storage, orchestration, cloud services, governance and quality controls.",
+      nodes:[["Spark & PySpark","Batch + streaming"],["Databricks & Delta","Lakehouse tables"],["AWS data services","Storage + compute"],["SQL + ETL / ELT","Transform + model"],["Orchestration","Scheduling + retries"],["Quality & lineage","Validation + traceability"]],
+      tags:["Spark","Databricks","AWS","SQL","ETL / ELT","Delta Lake","Data Quality"]
     },
     spark: {
       type:"DISTRIBUTED PROCESSING",root:"Apache Spark",title:"Spark processing ecosystem",
-      description:"Used for distributed batch transformations, SQL processing, streaming ingestion, and performance tuning across banking data workloads.",
-      nodes:[["PySpark / DataFrames","Python-based processing"],["Scala","JVM-based workloads"],["Spark SQL","Query transformations"],["Structured Streaming","Continuous ingestion"],["Kafka","Event source integration"],["Hive / HDFS","Data lake ecosystem"]],
+      description:"Distributed batch transformations, SQL processing, streaming ingestion and performance tuning across banking-data workloads.",
+      nodes:[["PySpark / DataFrames","Python processing"],["Scala","JVM workloads"],["Spark SQL","Query transformations"],["Structured Streaming","Event processing"],["Kafka","Streaming integration"],["Hive / HDFS","Data lake ecosystem"]],
       tags:["Partitioning","Caching","Broadcast joins","AQE","Predicate pushdown","Batch + streaming"]
     },
     databricks: {
@@ -171,29 +173,36 @@ filterButtons.forEach((button) => {
     },
     languages: {
       type:"LANGUAGES & INTERFACES",root:"PySpark / Scala",title:"Languages and interfaces",
-      description:"The language layer connects pipeline logic, SQL transformations, automation scripts and version-controlled delivery.",
-      nodes:[["Python","Pipeline utilities"],["SQL / Spark SQL","Data transformation"],["Shell scripting","Automation"],["DataFrames","Distributed API"],["Git","Version control"],["JSON / Parquet","Data formats"]],
-      tags:["Reusable jobs","Debugging","Testing","Automation"]
+      description:"Language and query layers connect reusable pipeline logic, SQL transformations, automation scripts and version-controlled delivery.",
+      nodes:[["Python","Pipeline utilities"],["SQL / Spark SQL","Data transformation"],["Shell scripting","Automation"],["DataFrames","Distributed API"],["Git","Version control"],["Parquet / JSON","Data formats"]],
+      tags:["Reusable jobs","Testing","Debugging","Automation"]
     },
     aws: {
       type:"CLOUD DATA SERVICES",root:"AWS",title:"Cloud storage and compute",
-      description:"Cloud services cover object storage, distributed compute, event streaming, cataloging, querying and permissions.",
+      description:"Cloud services cover object storage, distributed compute, event streaming, cataloguing, querying and permission boundaries.",
       nodes:[["Amazon S3","Object storage"],["Amazon EMR","Managed Spark"],["Amazon EC2","Compute"],["IAM","Identity + access"],["Glue / Lambda","Catalog + functions"],["Athena / Redshift","Query + warehouse"]],
       tags:["Kinesis","Cloud migration","S3 ingestion","Access control"]
     },
-    hadoop: {
-      type:"BIG DATA ECOSYSTEM",root:"Hadoop",title:"Distributed storage and SQL",
-      description:"The Hadoop ecosystem supports distributed storage and legacy data platforms, with SQL engines and bulk transfer tools.",
-      nodes:[["HDFS","Distributed storage"],["Hive","SQL warehouse"],["Impala","Low-latency SQL"],["Sqoop","Bulk data transfer"],["Parquet","Columnar format"],["Avro / ORC","Data serialization"]],
-      tags:["Partitioned data","Metadata","Batch processing","File formats"]
+    sql: {
+      type:"DATA QUERY & MODELING",root:"SQL",title:"Query, validate, model",
+      description:"SQL supports transformation logic, reconciliation, aggregation and analytical outputs alongside Spark SQL and data-quality checks.",
+      nodes:[["Spark SQL","Distributed query"],["Hive SQL","Warehouse queries"],["DuckDB","Local analytics engine"],["Reconciliation","Cross-path checks"],["Dimensional models","Facts + dimensions"],["Quality assertions","Rules + validations"]],
+      tags:["Aggregations","Window functions","CTEs","Reconciliation","Data modeling"]
     },
-    airflow: {
-      type:"ORCHESTRATION & OPERATIONS",root:"Airflow",title:"Orchestration and run control",
-      description:"Orchestration coordinates dependencies, retries and status validation so that a pipeline run is observable and failures are surfaced.",
-      nodes:[["DAG dependencies","Task order"],["Scheduling","Repeatable runs"],["Retries","Transient failures"],["Spark jobs","Processing tasks"],["S3 ingestion","Cloud transfer"],["Run reports","Status evidence"]],
-      tags:["Docker","Monitoring","Exit-code checks","Recovery diagnostics"]
+    etl: {
+      type:"PIPELINE DESIGN",root:"ETL / ELT",title:"Reliable data movement",
+      description:"The ingestion and transformation pattern determines where data is validated, how changes are processed, and how failures are recovered.",
+      nodes:[["Extract / ingest","Source acquisition"],["Transform","Business rules"],["Load / publish","Destination tables"],["Incremental loads","Process new changes"],["Idempotency","Safe re-runs"],["Data quality","Reject + quarantine"]],
+      tags:["Batch processing","Incremental ETL","Retries","Reconciliation","Audit trail"]
+    },
+    delta: {
+      type:"LAKEHOUSE STORAGE",root:"Delta Lake",title:"Reliable lakehouse tables",
+      description:"Delta Lake provides table-oriented storage patterns for incremental processing, consistent writes and quality-controlled analytical datasets.",
+      nodes:[["ACID transactions","Consistent writes"],["MERGE","Upserts + CDC"],["Time travel","Versioned data"],["Schema enforcement","Safer writes"],["OPTIMIZE","File layout tuning"],["Unity Catalog","Governed access"]],
+      tags:["Bronze / Silver / Gold","Incremental pipelines","Schema controls","Performance tuning"]
     }
   };
+
   const svgNS = "http://www.w3.org/2000/svg";
   const makeSvg = (tag, attrs, text) => {
     const element = document.createElementNS(svgNS, tag);
@@ -201,10 +210,8 @@ filterButtons.forEach((button) => {
     if (text !== undefined) element.textContent = text;
     return element;
   };
-  const addText = (parent,x,y,text,className) => {
-    const t=makeSvg("text",{x,y,class:className || ""},text);
-    parent.append(t);
-  };
+  const addText = (parent,x,y,text,className) => parent.append(makeSvg("text",{x,y,class:className || ""},text));
+
   function drawView(data) {
     graph.replaceChildren();
     graph.setAttribute("viewBox","0 0 940 330");
@@ -213,7 +220,7 @@ filterButtons.forEach((button) => {
       {x:20,y:20,w:200,h:60},{x:370,y:9,w:200,h:60},{x:720,y:20,w:200,h:60},
       {x:20,y:250,w:200,h:60},{x:370,y:261,w:200,h:60},{x:720,y:250,w:200,h:60}
     ];
-    positions.forEach((pos,index)=>{
+    positions.forEach(pos=>{
       const nodeCx=pos.x+pos.w/2, nodeCy=pos.y+pos.h/2;
       const sourceX=nodeCx<root.cx?root.x:nodeCx>root.cx?root.x+root.w:root.cx;
       const sourceY=nodeCy<root.cy?root.y:root.y+root.h;
@@ -230,17 +237,48 @@ filterButtons.forEach((button) => {
     const rootGroup=makeSvg("g",{class:"tech-graph-node tech-graph-root"});
     rootGroup.append(makeSvg("rect",{x:root.x,y:root.y,width:root.w,height:root.h,rx:12}));
     addText(rootGroup,root.cx,root.cy-5,data.root,"");
-    addText(rootGroup,root.cx,root.cy+17,"CORE TECHNOLOGY","node-index");
+    addText(rootGroup,root.cx,root.cy+17,"SELECTED TECHNOLOGY","node-index");
     graph.append(rootGroup);
   }
+
+  function centerTechnology(key) {
+    const orderedBefore = getButtonsInVisualOrder();
+    const selected = orderedBefore.find(button => button.dataset.techSelect === key);
+    if (!selected) return;
+    const before = new Map(orderedBefore.map(button => [button,button.getBoundingClientRect().left]));
+    const mid = Math.floor(orderedBefore.length/2);
+    const selectedIndex = orderedBefore.indexOf(selected);
+    const start = (selectedIndex - mid + orderedBefore.length) % orderedBefore.length;
+    const order = orderedBefore.slice(start).concat(orderedBefore.slice(0,start));
+    order.forEach(button => wheel.append(button));
+    if (!reducedMotion) {
+      order.forEach(button => {
+        const delta = before.get(button) - button.getBoundingClientRect().left;
+        if (Math.abs(delta) > 1 && typeof button.animate === "function") {
+          button.animate([{transform:"translateX("+delta+"px)"},{transform:"translateX(0)"}],{duration:360,easing:"cubic-bezier(.2,.8,.2,1)"});
+        }
+      });
+    }
+    if (window.matchMedia("(max-width: 680px)").matches) {
+      const wheelRect = wheel.getBoundingClientRect();
+      const buttonRect = selected.getBoundingClientRect();
+      const delta = buttonRect.left + buttonRect.width/2 - (wheelRect.left + wheelRect.width/2);
+      wheel.scrollTo({left:wheel.scrollLeft + delta,behavior:reducedMotion?"auto":"smooth"});
+    }
+  }
+
   function selectTechnology(key,shouldScroll=true) {
     const data=views[key] || views.overview;
     explorer.hidden=false;
-    selectButtons.forEach(button=>{
+    if (key !== "overview") centerTechnology(key);
+    techButtons.forEach(button=>{
       const active=button.dataset.techSelect===key;
       button.classList.toggle("active",active);
       button.setAttribute("aria-expanded",String(active));
+      button.setAttribute("aria-pressed",String(active));
     });
+    overviewTrigger.classList.toggle("active",key==="overview");
+    overviewTrigger.setAttribute("aria-expanded",String(key==="overview"));
     const type=document.getElementById("tech-map-type");
     const title=document.getElementById("tech-map-title");
     const description=document.getElementById("tech-map-description");
@@ -260,14 +298,16 @@ filterButtons.forEach((button) => {
     drawView(data);
     if(shouldScroll)requestAnimationFrame(()=>explorer.scrollIntoView({behavior:reducedMotion?"auto":"smooth",block:"center"}));
   }
-  selectButtons.forEach(button=>button.addEventListener("click",()=>selectTechnology(button.dataset.techSelect,true)));
+  techButtons.forEach(button=>button.addEventListener("click",()=>selectTechnology(button.dataset.techSelect,true)));
+  overviewTrigger.addEventListener("click",()=>selectTechnology("overview",true));
   if(closeButton)closeButton.addEventListener("click",()=>{
     explorer.hidden=true;
-    selectButtons.forEach(button=>button.setAttribute("aria-expanded","false"));
-    const trigger=document.getElementById("coreTechTrigger");
-    if(trigger)trigger.focus();
+    overviewTrigger.setAttribute("aria-expanded","false");
+    techButtons.forEach(button=>button.setAttribute("aria-expanded","false"));
+    overviewTrigger.focus();
   });
-})();
+  centerTechnology("databricks");
+})(); 
 
 /* Subtle section entrance and ambient parallax. Kept gentle and disabled for reduced-motion users. */
 (() => {
