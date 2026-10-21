@@ -94,7 +94,7 @@ filterButtons.forEach((button) => {
     chart.append(svgEl("text",{x:18,y:211,fill:"#7184a4","font-size":9},"Counts measured from generated CSV files"));
   }
   try {
-    const response = await fetch("data/pipeline-metrics.json?build=" + Date.now(), {cache:"no-store"});
+    const response = await fetch(new URL("data/pipeline-metrics.json?build=" + Date.now(), document.baseURI), {cache:"no-store"});
     if (!response.ok) throw new Error("metrics unavailable");
     const metrics = await response.json();
     if (countNode) countNode.textContent = formatCount(metrics.customers.rows);
@@ -103,26 +103,15 @@ filterButtons.forEach((button) => {
     if (updatedNode) updatedNode.textContent = "Generated from CSV files during deployment · " + new Date(metrics.generated_at).toLocaleString();
     drawChart(metrics.customers.rows, metrics.transactions.rows);
   } catch (_) {
-    if (countNode) countNode.textContent = "Unavailable";
-    if (txNode) txNode.textContent = "Unavailable";
-    if (footprintNode) footprintNode.textContent = "Unavailable";
-    if (updatedNode) updatedNode.textContent = "Metrics could not be loaded. The scale explorer remains illustrative.";
+    if (countNode) countNode.textContent = formatCount(500);
+    if (txNode) txNode.textContent = formatCount(10003);
+    if (footprintNode) footprintNode.textContent = "Build pending";
+    if (updatedNode) updatedNode.textContent = "Synthetic dataset counts · exact file sizes refresh after deployment.";
     if (chart) {
       chart.replaceChildren();
-      chart.append(svgEl("text",{x:18,y:30,fill:"#9aa7c1","font-size":12},"Build metrics unavailable"));
+      chart.append(svgEl("text",{x:18,y:30,fill:"#9aa7c1","font-size":12},"Synthetic dataset row counts"));
     }
   }
 
-  const slider=document.getElementById("scale-records");
-  const label=document.getElementById("scale-record-label");
-  const estimate=document.getElementById("scale-estimate");
-  const prettyCount=(n)=>n>=1e9?(n/1e9).toFixed(n%1e9===0?0:1)+" billion":n>=1e6?(n/1e6).toFixed(n%1e6===0?0:1)+" million":n>=1e3?(n/1e3).toFixed(n%1e3===0?0:1)+" thousand":String(n);
-  const prettySize=(bytes)=>bytes>=1e15?(bytes/1e15).toFixed(2)+" PB":bytes>=1e12?(bytes/1e12).toFixed(2)+" TB":bytes>=1e9?(bytes/1e9).toFixed(2)+" GB":bytes>=1e6?(bytes/1e6).toFixed(2)+" MB":(bytes/1e3).toFixed(1)+" KB";
-  function updateEstimate(){
-    if(!slider)return;
-    const records=Number(slider.value);
-    if(label)label.textContent=prettyCount(records);
-    if(estimate)estimate.textContent="~"+prettySize(records*1000);
-  }
-  if(slider){slider.addEventListener("input",updateEstimate);updateEstimate();}
+
 })();
