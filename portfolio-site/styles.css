@@ -288,3 +288,68 @@ p{font-size:12px}
 @media(prefers-reduced-motion:reduce){.technology-chip,.contact-icon-link{transition:none!important}.tech-wheel{scroll-behavior:auto}}
 
 .contact-icon.contact-brand-fill{fill:currentColor;stroke:none}
+
+
+/* Final readability pass: hero, profile card, walkthrough and icon-led contacts */
+.hero-copy>.eyebrow{font-size:12px!important;line-height:1.7;letter-spacing:.105em}
+.hero-lead{font-size:15px;line-height:1.85}
+.hero-meta .meta-label{font-size:10px}
+.contact-line{font-size:12px!important;gap:11px!important;line-height:1.8;color:#a9b8d0}
+.contact-icon-link{font-size:12px!important;gap:7px!important;min-height:28px}
+.contact-icon{width:16px!important;height:16px!important;flex-basis:16px}
+.profile-info .eyebrow{font-size:10px!important;line-height:1.6;letter-spacing:.055em!important}
+.profile-info h2{font-size:26px!important;line-height:1.25}
+.profile-info>p{font-size:13px!important;line-height:1.6}
+.profile-facts{gap:15px}
+.profile-facts span{font-size:10px!important;line-height:1.5}
+.profile-facts strong{font-size:12px!important;line-height:1.6}
+.profile-resume{font-size:12px!important;line-height:1.5}
+.visual-note{font-size:12px!important;line-height:1.6}
+.stage-button{font-size:13px!important;padding:12px 14px}
+.stage-button span{font-size:11px!important}
+.stage-detail-copy>.eyebrow{font-size:11px!important;letter-spacing:.09em}
+.stage-detail-copy h3{font-size:24px!important;line-height:1.35}
+.stage-detail-copy p{font-size:14px!important;line-height:1.8}
+.stage-facts span{font-size:11px!important;line-height:1.5}
+.stage-facts strong{font-size:13px!important;line-height:1.6}
+.architecture-footnote{font-size:11px!important;line-height:1.65}
+.contact-inner{align-items:flex-start}
+.contact-intro{max-width:560px}
+.contact-inner p{font-size:13px!important;line-height:1.8}
+.contact-location{display:inline-block;margin-top:12px;font-size:12px;color:#91a4c1}
+.contact-social-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:16px 22px;max-width:650px}
+.contact-social-link{display:inline-flex;align-items:center;gap:8px;min-height:32px;color:#c1cce0;font-size:13px;font-weight:700;line-height:1.45;white-space:nowrap;transition:color .2s ease,transform .2s ease}
+.contact-social-link svg{width:18px;height:18px;flex:0 0 18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.contact-social-link svg.filled-icon{fill:currentColor;stroke:none}
+.contact-social-link small{font-size:11px;color:#8fa2bf;font-weight:500}
+.contact-social-link:hover{color:var(--cyan);transform:translateY(-1px)}
+.contact-social-link:focus-visible,.contact-icon-link:focus-visible{outline:2px solid var(--cyan);outline-offset:4px;border-radius:3px}
+.whatsapp-contact-link svg,.whatsapp-link svg{color:#a8e6c9}
+.contact-separator{color:#52617d}
+@media(max-width:1000px){.contact-social-row{justify-content:flex-start;max-width:100%;gap:14px 20px}}
+@media(max-width:650px){
+  .hero-copy>.eyebrow{font-size:11px!important;letter-spacing:.07em}
+  .hero-lead{font-size:14px;line-height:1.8}
+  .hero-meta .meta-label{font-size:10px}
+  .contact-line{font-size:11px!important;gap:8px!important}
+  .contact-icon-link{font-size:11px!important}
+  .profile-info .eyebrow{font-size:10px!important}
+  .profile-info h2{font-size:23px!important}
+  .profile-info>p{font-size:12px!important}
+  .profile-facts span{font-size:10px!important}
+  .profile-facts strong{font-size:11px!important}
+  .profile-resume{font-size:11px!important}
+  .visual-note{font-size:11px!important}
+  .stage-button{font-size:12px!important;padding:11px 12px}
+  .stage-detail-copy h3{font-size:22px!important}
+  .stage-detail-copy p{font-size:13px!important;line-height:1.75}
+  .stage-facts span{font-size:10px!important}
+  .stage-facts strong{font-size:12px!important}
+  .contact-social-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:12px 16px;justify-content:start}
+  .contact-social-link{font-size:12px;gap:7px;white-space:normal;min-width:0;overflow-wrap:anywhere}
+  .contact-social-link svg{width:17px;height:17px;flex-basis:17px}
+  .contact-social-link small{font-size:10px}
+  .whatsapp-link,.phone-social-link{flex-wrap:wrap}
+}
+@media(max-width:390px){.contact-social-row{grid-template-columns:1fr}.contact-social-link{font-size:13px}.profile-facts strong{font-size:10.5px!important}}
+@media(prefers-reduced-motion:reduce){.contact-social-link{transition:none!important}}
