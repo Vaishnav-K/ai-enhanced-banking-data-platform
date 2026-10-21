@@ -419,3 +419,61 @@ p{font-size:12px}
 .demo-size-note>p{margin:0;color:#91a3bf;font-size:11px;line-height:1.7}
 .scale-caption{font-size:10px;line-height:1.6}
 @media(max-width:520px){.demo-size-note{padding:11px 12px}.demo-size-note>p{font-size:11px}}
+
+
+/* Portfolio polish: keep demo counts secondary and show skill tools on hover/focus */
+.dataset-quality-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0 16px}
+.dataset-quality-kpis>div{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0;min-height:112px;padding:15px;border:1px solid rgba(160,180,220,.14);border-radius:10px;background:linear-gradient(145deg,rgba(19,29,49,.92),rgba(11,17,31,.94))}
+.dataset-quality-kpis>div>span{font-size:11px;line-height:1.45;color:#9eacc4}
+.dataset-quality-kpis>div>strong{font-size:clamp(22px,2.2vw,29px);line-height:1.1;letter-spacing:-.045em;color:#eef3ff}
+.dataset-quality-kpis>div>strong.metric-pass{color:var(--green);font-size:23px}
+.dataset-quality-kpis small{font-size:10px;line-height:1.55;color:#8293af}
+.dataset-input-snapshot{border:1px solid rgba(160,180,220,.1);border-radius:9px;padding:11px 13px;background:rgba(5,10,20,.18);margin-top:5px}
+.dataset-inputs-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;font:500 9px 'DM Mono',monospace;letter-spacing:.08em;color:#7588a7}
+.dataset-inputs-heading span:last-child{color:#5f728e}
+.dataset-inputs-values{display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin-top:8px}
+.dataset-inputs-values>div{display:flex;align-items:baseline;gap:7px}
+.dataset-inputs-values span{font-size:10px;color:#7f91ad}
+.dataset-inputs-values strong{font-size:11px;font-weight:700;color:#afbdd3;letter-spacing:0}
+.dataset-kpis.dataset-quality-kpis{margin-bottom:13px}
+.project-quality-metrics{margin-top:24px}
+.project-quality-metrics strong{font-size:23px!important}
+.project-quality-metrics span{font-size:10px!important;line-height:1.55}
+.hero .eyebrow{flex-wrap:wrap}
+
+/* Skills become clean category headers; hover/focus opens a separate technology-chip panel. */
+.skill-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px 14px!important;align-items:start;overflow:visible}
+.skill-card{position:relative;min-width:0;min-height:0!important;height:auto;border:0!important;border-radius:12px!important;padding:0!important;background:transparent!important;overflow:visible!important;z-index:1}
+.skill-card:hover,.skill-card:focus-within,.skill-card.is-open{z-index:30}
+.skill-card-trigger{width:100%;min-height:94px;display:grid;grid-template-columns:30px minmax(0,1fr) 18px;align-items:center;column-gap:12px;padding:18px 16px;border:1px solid rgba(160,180,220,.17);border-radius:12px;background:linear-gradient(145deg,rgba(17,25,43,.96),rgba(12,18,32,.98));color:#eef3ff;text-align:left;cursor:pointer;transition:background .2s,border-color .2s,transform .2s,box-shadow .2s}
+.skill-card-trigger:hover,.skill-card-trigger:focus-visible,.skill-card.is-open .skill-card-trigger{outline:none;border-color:rgba(169,155,255,.52);background:linear-gradient(125deg,rgba(31,34,68,.97),rgba(13,28,44,.99));box-shadow:0 10px 28px rgba(0,0,0,.15);transform:translateY(-1px)}
+.skill-index{display:grid;place-items:center;width:28px;height:28px;border:1px solid rgba(160,180,220,.13);border-radius:8px;color:#8296b7;font:500 10px 'DM Mono',monospace}
+.skill-title{font-size:14px;line-height:1.45;font-weight:800;letter-spacing:-.02em}
+.skill-chevron{width:18px;height:18px;fill:none;stroke:#6bdcf2;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .22s}
+.skill-card:hover .skill-chevron,.skill-card:focus-within .skill-chevron,.skill-card.is-open .skill-chevron{transform:rotate(180deg)}
+.skill-tools{position:absolute;top:calc(100% + 8px);left:0;right:0;z-index:40;padding:14px;border:1px solid rgba(169,155,255,.3);border-radius:12px;background:linear-gradient(145deg,#131d32,#0c1424);box-shadow:0 22px 48px rgba(0,0,0,.42);opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-5px);transition:opacity .18s ease,transform .18s ease,visibility .18s ease}
+.skill-card:hover .skill-tools,.skill-card:focus-within .skill-tools,.skill-card.is-open .skill-tools{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0)}
+.skill-tools-label{display:block;font:500 9px 'DM Mono',monospace;letter-spacing:.09em;color:#7d91b3;margin-bottom:10px}
+.skill-tool-chips{display:flex;flex-wrap:wrap;gap:7px}
+.skill-tool-chips>span{display:inline-flex;align-items:center;max-width:100%;border:1px solid rgba(160,180,220,.16);border-radius:6px;padding:6px 8px;background:rgba(7,13,24,.42);color:#c6d3e8;font-size:10px;line-height:1.35;overflow-wrap:anywhere}
+.skill-tool-chips>span:nth-child(3n+1){border-color:rgba(169,155,255,.28);color:#d0c8ff}
+.skill-tool-chips>span:nth-child(3n+2){border-color:rgba(107,220,242,.2)}
+.skill-tool-chips>span:nth-child(3n){border-color:rgba(124,226,178,.18)}
+.skill-card p:not(.unused){display:none!important}
+.skill-hover-details{display:none!important}
+@media(max-width:1000px){.skill-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.skill-tools{max-width:none}}
+@media(max-width:650px){
+  .dataset-quality-kpis{grid-template-columns:1fr;gap:8px}
+  .dataset-quality-kpis>div{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:5px 12px;padding:12px 13px}
+  .dataset-quality-kpis>div>span{grid-column:1;grid-row:1}
+  .dataset-quality-kpis>div>strong{grid-column:2;grid-row:1;font-size:22px}
+  .dataset-quality-kpis small{grid-column:1/-1}
+  .dataset-inputs-values{gap:9px 16px}
+  .skill-grid{grid-template-columns:1fr!important;gap:9px!important}
+  .skill-card-trigger{min-height:76px;padding:14px 15px}
+  .skill-title{font-size:14px}
+  .skill-tools{position:static;display:none;opacity:1;visibility:visible;pointer-events:auto;transform:none;margin-top:7px;box-shadow:none}
+  .skill-card.is-open .skill-tools,.skill-card:focus-within .skill-tools{display:block;transform:none}
+  .skill-card-trigger:hover,.skill-card-trigger:focus-visible,.skill-card.is-open .skill-card-trigger{transform:none}
+}
+@media(prefers-reduced-motion:reduce){.skill-card-trigger,.skill-tools,.skill-chevron{transition:none!important}}
