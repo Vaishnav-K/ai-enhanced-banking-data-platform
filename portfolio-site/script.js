@@ -107,10 +107,7 @@ filterButtons.forEach((button) => {
     if (txNode) txNode.textContent = formatCount(10003);
     if (footprintNode) footprintNode.textContent = "Build pending";
     if (updatedNode) updatedNode.textContent = "Synthetic dataset counts · exact file sizes refresh after deployment.";
-    if (chart) {
-      chart.replaceChildren();
-      chart.append(svgEl("text",{x:18,y:30,fill:"#9aa7c1","font-size":12},"Synthetic dataset row counts"));
-    }
+    drawChart(500, 10003);
   }
 
 
