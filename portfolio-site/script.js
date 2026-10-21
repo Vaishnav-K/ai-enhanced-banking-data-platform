@@ -306,7 +306,6 @@ filterButtons.forEach((button) => {
     techButtons.forEach(button=>button.setAttribute("aria-expanded","false"));
     overviewTrigger.focus();
   });
-  centerTechnology("databricks");
 })(); 
 
 /* Subtle section entrance and ambient parallax. Kept gentle and disabled for reduced-motion users. */
