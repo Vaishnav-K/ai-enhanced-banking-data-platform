@@ -259,7 +259,7 @@ filterButtons.forEach((button) => {
         }
       });
     }
-    if (window.matchMedia("(max-width: 680px)").matches) {
+    if (window.matchMedia("(max-width: 1000px)").matches || wheel.scrollWidth > wheel.clientWidth) {
       const wheelRect = wheel.getBoundingClientRect();
       const buttonRect = selected.getBoundingClientRect();
       const delta = buttonRect.left + buttonRect.width/2 - (wheelRect.left + wheelRect.width/2);
