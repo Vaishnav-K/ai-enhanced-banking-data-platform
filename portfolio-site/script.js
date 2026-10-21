@@ -346,3 +346,62 @@ filterButtons.forEach((button) => {
   },{passive:true});
   updateParallax();
 })();
+
+
+/* Skills grid: show category titles first, then reveal technology chips on hover, focus or tap. */
+(() => {
+  const cards = Array.from(document.querySelectorAll(".skill-card"));
+  if (!cards.length) return;
+
+  const setOpen = (card, open) => {
+    const button = card.querySelector(".skill-card-trigger");
+    const panel = card.querySelector(".skill-tools");
+    card.classList.toggle("is-open", open);
+    if (button) button.setAttribute("aria-expanded", String(open));
+    if (panel) panel.setAttribute("aria-hidden", String(!open));
+  };
+
+  cards.forEach((card) => {
+    const button = card.querySelector(".skill-card-trigger");
+    const panel = card.querySelector(".skill-tools");
+    if (!button || !panel) return;
+
+    card.addEventListener("pointerenter", (event) => {
+      if (event.pointerType === "mouse") panel.setAttribute("aria-hidden", "false");
+    });
+    card.addEventListener("pointerleave", () => {
+      if (!card.classList.contains("is-open") && !card.contains(document.activeElement)) {
+        panel.setAttribute("aria-hidden", "true");
+      }
+    });
+    card.addEventListener("focusin", () => panel.setAttribute("aria-hidden", "false"));
+    card.addEventListener("focusout", () => {
+      window.setTimeout(() => {
+        if (!card.classList.contains("is-open") && !card.contains(document.activeElement)) {
+          panel.setAttribute("aria-hidden", "true");
+        }
+      }, 0);
+    });
+
+    button.addEventListener("click", () => {
+      const willOpen = !card.classList.contains("is-open");
+      cards.forEach((other) => setOpen(other, false));
+      setOpen(card, willOpen);
+    });
+  });
+
+  document.addEventListener("click", (event) => {
+    if (event.target.closest(".skill-card")) return;
+    cards.forEach((card) => setOpen(card, false));
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    const openCard = cards.find((card) => card.classList.contains("is-open"));
+    if (openCard) {
+      setOpen(openCard, false);
+      const button = openCard.querySelector(".skill-card-trigger");
+      if (button) button.focus();
+    }
+  });
+})();
