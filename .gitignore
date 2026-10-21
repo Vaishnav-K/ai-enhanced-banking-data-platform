@@ -27,3 +27,7 @@ data/quarantine/
 
 # Generated Spark outputs
 data/spark_processed/
+
+orchestration/airflow/.env
+
+orchestration/airflow/docker-compose.fixed.yaml

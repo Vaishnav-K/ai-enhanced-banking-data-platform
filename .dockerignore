@@ -1,0 +1,17 @@
+﻿.git
+**/.git
+.venv*/
+**/.venv*/
+venv*/
+**/venv*/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+**/.pytest_cache/
+.mypy_cache/
+**/.mypy_cache/
+node_modules/
+**/node_modules/
+orchestration/airflow/logs/
+**/.env
