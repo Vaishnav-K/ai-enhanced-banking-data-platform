@@ -33,3 +33,8 @@ body {
   content: "SENIOR DATA ENGINEER";
   display: none;
 }
+
+
+/* Brand and employer marks — direct repository update */
+.brand-name{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}.brand-divider{color:#a99bff;font-weight:500}.brand-role{color:#aebbd1;font-weight:700;letter-spacing:.09em}.project-company{display:flex;align-items:center;gap:10px;min-width:0}.company-caption{font:500 9px/1.4 'DM Mono',monospace;letter-spacing:.12em;color:#93a3c0}.company-wordmark{display:inline-flex;align-items:center;justify-content:center;color:#b5a8ff;line-height:1;flex-shrink:0}.citi-wordmark{font:800 21px/1 Arial,sans-serif;letter-spacing:-.08em;position:relative;padding:2px 3px 5px}.citi-arc{position:absolute;top:0;left:2px;width:23px;height:9px;border-top:2px solid #6bdcf2;border-radius:50% 50% 0 0;transform:translateY(-2px)}.bofa-wordmark svg{display:block;width:27px;height:21px;color:#83dfc1}.project-grid>.project-card:last-child{grid-column:1/-1}.project-grid>.project-card:last-child .project-note{max-width:760px}body{background:radial-gradient(ellipse at 0% 20%,rgba(132,93,235,.075),transparent 34%),radial-gradient(ellipse at 100% 65%,rgba(65,185,137,.05),transparent 32%),#090d19}
+@media(max-width:650px){.brand{gap:8px;font-size:10px}.brand-role{letter-spacing:.045em}.company-caption{font-size:8px;letter-spacing:.07em}.citi-wordmark{font-size:18px}}
