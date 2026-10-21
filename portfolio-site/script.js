@@ -77,21 +77,41 @@ filterButtons.forEach((button) => {
     if (text !== undefined) el.textContent = text;
     return el;
   };
-  function drawChart(customers, transactions) {
+  function drawChart(customers, transactions, customerBytes = null, transactionBytes = null) {
     if (!chart) return;
     chart.replaceChildren();
-    chart.setAttribute("viewBox","0 0 600 220");
-    chart.append(svgEl("text",{x:18,y:24,fill:"#9aa7c1","font-size":11},"Generated rows by dataset"));
-    const values=[{label:"Customers",value:customers,color:"#a99bff"},{label:"Transactions",value:transactions,color:"#6bdcf2"}];
-    const max=Math.max(1,...values.map(v=>v.value));
-    values.forEach((v,i)=>{
-      const y=54+i*76, width=Math.max(3,Math.round(510*v.value/max));
-      chart.append(svgEl("text",{x:18,y:y,fill:"#b7c5dc","font-size":12},v.label));
-      chart.append(svgEl("rect",{x:18,y:y+12,width:510,height:22,rx:6,fill:"#1b263b"}));
-      chart.append(svgEl("rect",{x:18,y:y+12,width, height:22,rx:6,fill:v.color,opacity:.92}));
-      chart.append(svgEl("text",{x:548,y:y+28,fill:"#eef3ff","font-size":12,"text-anchor":"end"},formatCount(v.value)));
+    chart.setAttribute("viewBox","0 0 600 292");
+    chart.append(svgEl("text",{x:18,y:20,fill:"#8e9fbd","font-size":10,"letter-spacing":1.2},"RECORD COUNTS"));
+    const rows=[{label:"Customers",value:customers,color:"#a99bff",y:35},{label:"Transactions",value:transactions,color:"#6bdcf2",y:78}];
+    const rowMax=Math.max(1,...rows.map(v=>v.value));
+    rows.forEach(v=>{
+      const width=Math.max(3,Math.round(430*v.value/rowMax));
+      chart.append(svgEl("text",{x:18,y:v.y+2,fill:"#b7c5dc","font-size":11},v.label));
+      chart.append(svgEl("rect",{x:18,y:v.y+9,width:430,height:15,rx:5,fill:"#1b263b"}));
+      chart.append(svgEl("rect",{x:18,y:v.y+9,width,height:15,rx:5,fill:v.color,opacity:.95}));
+      chart.append(svgEl("text",{x:578,y:v.y+21,fill:"#eef3ff","font-size":11,"text-anchor":"end"},formatCount(v.value)));
     });
-    chart.append(svgEl("text",{x:18,y:211,fill:"#7184a4","font-size":9},"Counts measured from generated CSV files"));
+    chart.append(svgEl("line",{x1:18,y1:119,x2:580,y2:119,stroke:"#29364d","stroke-width":1}));
+    chart.append(svgEl("text",{x:18,y:142,fill:"#8e9fbd","font-size":10,"letter-spacing":1.2},"RAW FILE SIZE"));
+    if (Number.isFinite(customerBytes) && Number.isFinite(transactionBytes)) {
+      const sizes=[
+        {label:"customers.csv",value:customerBytes,color:"#a99bff",y:157},
+        {label:"transactions.csv",value:transactionBytes,color:"#6bdcf2",y:201}
+      ];
+      const sizeMax=Math.max(1,...sizes.map(v=>v.value));
+      sizes.forEach(v=>{
+        const width=Math.max(3,Math.round(430*v.value/sizeMax));
+        chart.append(svgEl("text",{x:18,y:v.y+2,fill:"#b7c5dc","font-size":11},v.label));
+        chart.append(svgEl("rect",{x:18,y:v.y+9,width:430,height:15,rx:5,fill:"#1b263b"}));
+        chart.append(svgEl("rect",{x:18,y:v.y+9,width,height:15,rx:5,fill:v.color,opacity:.85}));
+        chart.append(svgEl("text",{x:578,y:v.y+21,fill:"#eef3ff","font-size":11,"text-anchor":"end"},formatBytes(v.value)));
+      });
+      chart.append(svgEl("text",{x:18,y:258,fill:"#7184a4","font-size":9},"Measured from the latest generated CSV files"));
+    } else {
+      chart.append(svgEl("text",{x:18,y:177,fill:"#7184a4","font-size":11},"File-size bars appear after the deployment metrics load."));
+      chart.append(svgEl("text",{x:18,y:258,fill:"#7184a4","font-size":9},"Counts shown from the synthetic dataset configuration"));
+    }
+    chart.append(svgEl("text",{x:18,y:281,fill:"#7184a4","font-size":9},"Synthetic portfolio data · refreshed at deploy time"));
   }
   try {
     const response = await fetch(new URL("data/pipeline-metrics.json?build=" + Date.now(), document.baseURI), {cache:"no-store"});
@@ -101,14 +121,183 @@ filterButtons.forEach((button) => {
     if (txNode) txNode.textContent = formatCount(metrics.transactions.rows);
     if (footprintNode) footprintNode.textContent = formatBytes(metrics.total_bytes);
     if (updatedNode) updatedNode.textContent = "Generated from CSV files during deployment · " + new Date(metrics.generated_at).toLocaleString();
-    drawChart(metrics.customers.rows, metrics.transactions.rows);
+    drawChart(metrics.customers.rows, metrics.transactions.rows, metrics.customers.bytes, metrics.transactions.bytes);
   } catch (_) {
     if (countNode) countNode.textContent = formatCount(500);
-    if (txNode) txNode.textContent = formatCount(10003);
+    if (txNode) txNode.textContent = formatCount(10004);
     if (footprintNode) footprintNode.textContent = "Build pending";
     if (updatedNode) updatedNode.textContent = "Synthetic dataset counts · exact file sizes refresh after deployment.";
-    drawChart(500, 10003);
+    drawChart(500, 10004);
   }
 
 
+})();
+
+
+/* Click-to-explore technology map: selectable nodes are mapped to the stack described on this portfolio. */
+(() => {
+  const selectButtons = Array.from(document.querySelectorAll("[data-tech-select]"));
+  const explorer = document.getElementById("technology-explorer");
+  const graph = document.getElementById("technology-graph");
+  const closeButton = document.getElementById("techMapClose");
+  if (!selectButtons.length || !explorer || !graph) return;
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const views = {
+    overview: {
+      type:"STACK OVERVIEW",root:"Data Engineering Stack",title:"Connected delivery stack",
+      description:"The core technologies work together across ingestion, distributed processing, lakehouse storage, orchestration, cloud services, governance and data quality.",
+      nodes:[
+        ["Spark & PySpark","Batch + streaming"],["Databricks & Delta","Lakehouse processing"],["AWS data services","Storage + compute"],
+        ["Hadoop ecosystem","Distributed data"],["Airflow / Autosys","Scheduling + retries"],["Quality & lineage","Validation + traceability"]
+      ],tags:["Spark","Databricks","AWS","Hadoop","Airflow","Data Quality","Governance"]
+    },
+    spark: {
+      type:"DISTRIBUTED PROCESSING",root:"Apache Spark",title:"Spark processing ecosystem",
+      description:"Used for distributed batch transformations, SQL processing, streaming ingestion, and performance tuning across banking data workloads.",
+      nodes:[["PySpark / DataFrames","Python-based processing"],["Scala","JVM-based workloads"],["Spark SQL","Query transformations"],["Structured Streaming","Continuous ingestion"],["Kafka","Event source integration"],["Hive / HDFS","Data lake ecosystem"]],
+      tags:["Partitioning","Caching","Broadcast joins","AQE","Predicate pushdown","Batch + streaming"]
+    },
+    databricks: {
+      type:"LAKEHOUSE PLATFORM",root:"Databricks",title:"Lakehouse and governance",
+      description:"Databricks and Delta technologies support reliable table processing, incremental patterns, access controls and governed analytics.",
+      nodes:[["Delta Lake","ACID table storage"],["Unity Catalog","Access + lineage"],["Workflows","Job orchestration"],["Medallion design","Bronze / Silver / Gold"],["AWS S3","Object storage"],["Delta pipelines","Managed transformation"]],
+      tags:["Incremental processing","Table quality","RBAC","Lineage","Lakehouse"]
+    },
+    languages: {
+      type:"LANGUAGES & INTERFACES",root:"PySpark / Scala",title:"Languages and interfaces",
+      description:"The language layer connects pipeline logic, SQL transformations, automation scripts and version-controlled delivery.",
+      nodes:[["Python","Pipeline utilities"],["SQL / Spark SQL","Data transformation"],["Shell scripting","Automation"],["DataFrames","Distributed API"],["Git","Version control"],["JSON / Parquet","Data formats"]],
+      tags:["Reusable jobs","Debugging","Testing","Automation"]
+    },
+    aws: {
+      type:"CLOUD DATA SERVICES",root:"AWS",title:"Cloud storage and compute",
+      description:"Cloud services cover object storage, distributed compute, event streaming, cataloging, querying and permissions.",
+      nodes:[["Amazon S3","Object storage"],["Amazon EMR","Managed Spark"],["Amazon EC2","Compute"],["IAM","Identity + access"],["Glue / Lambda","Catalog + functions"],["Athena / Redshift","Query + warehouse"]],
+      tags:["Kinesis","Cloud migration","S3 ingestion","Access control"]
+    },
+    hadoop: {
+      type:"BIG DATA ECOSYSTEM",root:"Hadoop",title:"Distributed storage and SQL",
+      description:"The Hadoop ecosystem supports distributed storage and legacy data platforms, with SQL engines and bulk transfer tools.",
+      nodes:[["HDFS","Distributed storage"],["Hive","SQL warehouse"],["Impala","Low-latency SQL"],["Sqoop","Bulk data transfer"],["Parquet","Columnar format"],["Avro / ORC","Data serialization"]],
+      tags:["Partitioned data","Metadata","Batch processing","File formats"]
+    },
+    airflow: {
+      type:"ORCHESTRATION & OPERATIONS",root:"Airflow",title:"Orchestration and run control",
+      description:"Orchestration coordinates dependencies, retries and status validation so that a pipeline run is observable and failures are surfaced.",
+      nodes:[["DAG dependencies","Task order"],["Scheduling","Repeatable runs"],["Retries","Transient failures"],["Spark jobs","Processing tasks"],["S3 ingestion","Cloud transfer"],["Run reports","Status evidence"]],
+      tags:["Docker","Monitoring","Exit-code checks","Recovery diagnostics"]
+    }
+  };
+  const svgNS = "http://www.w3.org/2000/svg";
+  const makeSvg = (tag, attrs, text) => {
+    const element = document.createElementNS(svgNS, tag);
+    Object.entries(attrs).forEach(([key,value]) => element.setAttribute(key,String(value)));
+    if (text !== undefined) element.textContent = text;
+    return element;
+  };
+  const addText = (parent,x,y,text,className) => {
+    const t=makeSvg("text",{x,y,class:className || ""},text);
+    parent.append(t);
+  };
+  function drawView(data) {
+    graph.replaceChildren();
+    graph.setAttribute("viewBox","0 0 940 330");
+    const root={x:350,y:128,w:240,h:72,cx:470,cy:164};
+    const positions=[
+      {x:20,y:20,w:200,h:60},{x:370,y:9,w:200,h:60},{x:720,y:20,w:200,h:60},
+      {x:20,y:250,w:200,h:60},{x:370,y:261,w:200,h:60},{x:720,y:250,w:200,h:60}
+    ];
+    positions.forEach((pos,index)=>{
+      const nodeCx=pos.x+pos.w/2, nodeCy=pos.y+pos.h/2;
+      const sourceX=nodeCx<root.cx?root.x:nodeCx>root.cx?root.x+root.w:root.cx;
+      const sourceY=nodeCy<root.cy?root.y:root.y+root.h;
+      graph.append(makeSvg("line",{x1:sourceX,y1:sourceY,x2:nodeCx,y2:nodeCy,class:"tech-graph-edge"}));
+    });
+    positions.forEach((pos,index)=>{
+      const [label,detail]=data.nodes[index];
+      const group=makeSvg("g",{class:"tech-graph-node","data-node":label});
+      group.append(makeSvg("rect",{x:pos.x,y:pos.y,width:pos.w,height:pos.h,rx:9}));
+      addText(group,pos.x+pos.w/2,pos.y+25,label,"");
+      addText(group,pos.x+pos.w/2,pos.y+43,detail,"node-index");
+      graph.append(group);
+    });
+    const rootGroup=makeSvg("g",{class:"tech-graph-node tech-graph-root"});
+    rootGroup.append(makeSvg("rect",{x:root.x,y:root.y,width:root.w,height:root.h,rx:12}));
+    addText(rootGroup,root.cx,root.cy-5,data.root,"");
+    addText(rootGroup,root.cx,root.cy+17,"CORE TECHNOLOGY","node-index");
+    graph.append(rootGroup);
+  }
+  function selectTechnology(key,shouldScroll=true) {
+    const data=views[key] || views.overview;
+    explorer.hidden=false;
+    selectButtons.forEach(button=>{
+      const active=button.dataset.techSelect===key;
+      button.classList.toggle("active",active);
+      button.setAttribute("aria-expanded",String(active));
+    });
+    const type=document.getElementById("tech-map-type");
+    const title=document.getElementById("tech-map-title");
+    const description=document.getElementById("tech-map-description");
+    const tags=document.getElementById("tech-map-tags");
+    if(type)type.textContent=data.type;
+    if(title)title.textContent=data.title;
+    if(description)description.textContent=data.description;
+    if(tags){
+      tags.replaceChildren();
+      data.tags.forEach(tag=>{
+        const chip=document.createElement("span");
+        chip.className="tech-map-tag";
+        chip.textContent=tag;
+        tags.append(chip);
+      });
+    }
+    drawView(data);
+    if(shouldScroll)requestAnimationFrame(()=>explorer.scrollIntoView({behavior:reducedMotion?"auto":"smooth",block:"center"}));
+  }
+  selectButtons.forEach(button=>button.addEventListener("click",()=>selectTechnology(button.dataset.techSelect,true)));
+  if(closeButton)closeButton.addEventListener("click",()=>{
+    explorer.hidden=true;
+    selectButtons.forEach(button=>button.setAttribute("aria-expanded","false"));
+    const trigger=document.getElementById("coreTechTrigger");
+    if(trigger)trigger.focus();
+  });
+})();
+
+/* Subtle section entrance and ambient parallax. Kept gentle and disabled for reduced-motion users. */
+(() => {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const targets=Array.from(document.querySelectorAll(".section-block, .proof-strip, .contact-section"));
+  if ("IntersectionObserver" in window) {
+    document.documentElement.classList.add("has-scroll-motion");
+    const observer=new IntersectionObserver(entries=>{
+      entries.forEach(entry=>{
+        if(entry.isIntersecting){
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    },{threshold:0.08,rootMargin:"0px 0px -4% 0px"});
+    targets.forEach(target=>{
+      target.classList.add("scroll-reveal");
+      observer.observe(target);
+    });
+  } else {
+    targets.forEach(target=>target.classList.add("is-visible"));
+  }
+  const ambientOne=document.querySelector(".ambient-one");
+  const ambientTwo=document.querySelector(".ambient-two");
+  let framePending=false;
+  const updateParallax=()=>{
+    const offset=window.scrollY || window.pageYOffset || 0;
+    if(ambientOne)ambientOne.style.transform="translate3d(0,"+Math.min(offset*0.09,170)+"px,0)";
+    if(ambientTwo)ambientTwo.style.transform="translate3d(0,"+Math.min(offset*0.045,110)+"px,0)";
+    framePending=false;
+  };
+  window.addEventListener("scroll",()=>{
+    if(!framePending){
+      framePending=true;
+      window.requestAnimationFrame(updateParallax);
+    }
+  },{passive:true});
+  updateParallax();
 })();
