@@ -105,13 +105,13 @@
     </section>
 
     <section class="section-wrap section-block" id="scale">
-      <div class="section-heading"><div><div class="eyebrow">DATA SCALE & OBSERVABILITY</div><h2>Measure the data, not just the code.</h2></div><p>Actual synthetic dataset counts and file footprint are refreshed by the website deployment workflow. Enterprise client scale is kept separate from demo measurements.</p></div>
+      <div class="section-heading"><div><div class="eyebrow">DATA SCALE & OBSERVABILITY</div><h2>Measure the data, not just the code.</h2></div><p>This public demo is intentionally lightweight and synthetic. Dataset counts and file sizes are measured during deployment; professional client-scale examples are shown separately.</p></div>
       <div class="scale-grid">
         <div class="scale-panel">
-          <div class="scale-panel-heading"><div><span class="scale-kicker">LATEST GENERATED DATASET</span><h3>Pipeline input footprint</h3></div><span class="scale-live"><span class="status-dot"></span> BUILD-REFRESHED</span></div>
-          <div class="dataset-kpis"><div><span>Customers</span><strong id="metric-customers">Loading…</strong></div><div><span>Transaction rows</span><strong id="metric-transactions">Loading…</strong></div><div><span>CSV footprint</span><strong id="metric-footprint">Loading…</strong></div></div>
+          <div class="scale-panel-heading"><div><span class="scale-kicker">PUBLIC DEMO DATA · SYNTHETIC</span><h3>Reproducible pipeline inputs</h3></div><span class="scale-live"><span class="status-dot"></span> BUILD-REFRESHED</span></div>
+          <div class="dataset-kpis"><div><span>Customers</span><strong id="metric-customers">Loading…</strong></div><div><span>Transaction rows</span><strong id="metric-transactions">Loading…</strong></div><div><span>Total input files</span><strong id="metric-footprint">Loading…</strong></div></div>
           <div class="chart-wrap"><svg id="dataset-chart" viewBox="0 0 600 220" role="img" aria-label="Bar chart comparing generated customer and transaction row counts and file sizes"><text x="24" y="30" fill="#9aa7c1" font-size="12">Loading dataset metrics…</text></svg></div>
-          <p class="scale-caption" id="metric-updated">Metrics are loaded from the latest deployed build.</p>
+          <div class="demo-size-note"><strong>Why is the footprint small?</strong><p>This public demo deliberately uses a compact synthetic dataset so reviewers can understand and run the pipeline quickly. The displayed file size is measured, not estimated; client-scale work is shown separately.</p></div><p class="scale-caption" id="metric-updated">Metrics are loaded from the latest deployed build.</p>
         </div>
         <div class="scale-panel scale-context">
           <span class="scale-kicker">ENTERPRISE DATA ENGINEERING</span>
