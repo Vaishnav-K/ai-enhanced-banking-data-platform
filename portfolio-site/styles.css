@@ -484,3 +484,45 @@ p{font-size:12px}
   .skill-card:not(.is-open) .skill-tools{display:none!important}
   .skill-card.is-open .skill-tools{display:block!important}
 }
+
+
+/* Layout corrections requested after visual review */
+.scale-grid{align-items:start!important}
+.scale-grid .scale-context{align-self:start;height:max-content;min-height:0}
+.scale-context .scale-caption{margin-top:14px!important}
+.project-grid>.project-card:last-child>p{max-width:none!important}
+.timeline-heading>div{min-width:0;flex:1 1 auto}
+.timeline-heading .company{display:block;max-width:100%;margin-top:7px!important;font-size:12px;line-height:1.65}
+.timeline-heading .company-break{padding-top:1px}
+
+/* Skills now use click-to-expand panels in document flow.
+   Expanded content increases the grid row's height instead of floating over the next section. */
+.skill-grid{align-items:start!important;grid-auto-rows:min-content!important;overflow:visible}
+.skill-card{align-self:start!important;min-width:0;min-height:0!important;height:max-content;position:relative;z-index:auto!important;overflow:visible!important;cursor:default}
+.skill-card-heading{display:block;margin:0!important;padding:0!important;font-size:inherit;font-weight:inherit;line-height:normal}
+.skill-card-trigger{min-height:84px!important;grid-template-columns:29px minmax(0,1fr) 18px!important;column-gap:11px!important;padding:16px 15px!important}
+.skill-title{font-family:Manrope,system-ui,sans-serif!important;font-size:14px!important;font-weight:600!important;line-height:1.45!important;letter-spacing:-.012em!important;overflow-wrap:anywhere}
+.skill-index{font-size:10px!important}
+.skill-chevron{width:17px;height:17px;transition:transform .2s ease}
+.skill-card.is-open .skill-chevron{transform:rotate(180deg)}
+.skill-card-trigger:hover,.skill-card-trigger:focus-visible,.skill-card.is-open .skill-card-trigger{transform:none!important}
+.skill-card-trigger:focus-visible{outline:2px solid rgba(107,220,242,.65)!important;outline-offset:3px}
+.skill-tools{position:static!important;inset:auto!important;display:block;max-width:none!important;width:100%;margin-top:9px!important;padding:14px!important;border:1px solid rgba(169,155,255,.25)!important;border-radius:11px!important;background:linear-gradient(145deg,rgba(18,28,47,.97),rgba(10,17,31,.98))!important;box-shadow:none!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;transform:none!important;animation:skillPanelEnter .22s ease both}
+.skill-tools[hidden]{display:none!important}
+.skill-tools-label{font-size:9px!important;margin-bottom:9px!important}
+.skill-tool-chips{gap:7px!important}
+.skill-tool-chips>span{font-size:10px!important;line-height:1.45!important;padding:6px 8px!important}
+.skill-card:hover .skill-tools:not([hidden]),.skill-card:focus-within .skill-tools:not([hidden]){opacity:1;visibility:visible;transform:none}
+@keyframes skillPanelEnter{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:1000px){.skill-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important}}
+@media(max-width:650px){
+ .skill-grid{grid-template-columns:minmax(0,1fr)!important;gap:10px!important}
+ .skill-card-trigger{min-height:72px!important;padding:13px 14px!important}
+ .skill-title{font-size:14px!important}
+ .skill-tools{position:static!important;margin-top:8px!important}
+ .scale-grid{align-items:start!important}
+ .scale-grid .scale-context{height:max-content}
+ .project-grid>.project-card:last-child>p{max-width:none!important}
+ .timeline-heading .company{font-size:12px!important}
+}
+@media(prefers-reduced-motion:reduce){.skill-tools{animation:none!important}.skill-chevron{transition:none!important}}
