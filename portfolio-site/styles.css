@@ -5,3 +5,31 @@
 @media(max-width:650px){.section-wrap{width:calc(100% - 32px)}.site-header{height:68px;padding-inline:16px}.menu-toggle{display:block}nav{display:none;position:absolute;top:67px;left:0;right:0;padding:18px;background:#0e1526;border-bottom:1px solid var(--line);flex-direction:column;align-items:stretch;gap:14px}nav.open{display:flex}nav a{padding:5px 0}.nav-cta{text-align:center}.hero{padding-top:48px;padding-bottom:50px}.hero h1{font-size:clamp(41px,12vw,55px)}.hero-lead{font-size:13px}.hero-meta{gap:15px;justify-content:space-between}.meta-number{font-size:14px}.meta-label{font-size:8px}.contact-line{gap:7px;font-size:9px}.profile-card{grid-template-columns:.85fr 1.15fr}.profile-image-wrap{min-height:300px}.profile-info{padding:17px 13px}.profile-info h2{font-size:20px}.profile-info .eyebrow{font-size:7px}.profile-facts strong{font-size:9px}.proof-strip{justify-content:flex-start;gap:14px 20px}.proof-strip>span{width:100%}.section-block{padding-top:72px}.section-heading h2{font-size:30px}.timeline-item{grid-template-columns:1fr 15px;gap:12px}.timeline-date{grid-column:1/-1;padding-left:0}.timeline-marker{grid-column:2;grid-row:2}.timeline-content{grid-column:1;grid-row:2;padding:17px}.timeline-heading{flex-direction:column;gap:8px}.project-grid{grid-template-columns:1fr}.featured-project{grid-column:auto;padding:22px}.featured-project h3{font-size:28px}.project-card{padding:21px}.metric-row strong{font-size:16px}.metric-row div{padding:0 9px}.metric-row span{font-size:8px}.skill-grid,.credentials-grid{grid-template-columns:1fr}.skill-card{min-height:auto}.credential-item{grid-template-columns:78px 1fr}.contact-section{margin-top:72px;padding:38px 0}.contact-actions{width:100%;flex-direction:column}.site-footer{align-items:flex-start;flex-direction:column;gap:14px;padding-block:23px}}
 @media(max-width:390px){.profile-card{grid-template-columns:1fr}.profile-image-wrap{height:280px;min-height:0}.profile-image{object-position:center 28%}.profile-info{padding:22px}.hero-meta{gap:10px}.meta-label{max-width:90px}.metric-row{gap:0}.metric-row strong{font-size:14px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition:none!important}}
+
+/* Portfolio layout refinement */
+.project-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.project-grid > .project-card:last-child {
+  grid-column: 1 / -1;
+  background:
+    radial-gradient(ellipse at 95% 10%, rgba(124, 226, 178, 0.07), transparent 45%),
+    linear-gradient(120deg, rgba(27, 31, 65, 0.78), rgba(12, 25, 42, 0.92));
+}
+
+.project-grid > .project-card:last-child .project-note {
+  max-width: 760px;
+}
+
+body {
+  background:
+    radial-gradient(ellipse at 0% 20%, rgba(132, 93, 235, 0.07), transparent 34%),
+    radial-gradient(ellipse at 100% 65%, rgba(65, 185, 137, 0.045), transparent 32%),
+    #090d19;
+}
+
+.brand::after {
+  content: "SENIOR DATA ENGINEER";
+  display: none;
+}
