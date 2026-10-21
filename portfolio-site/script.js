@@ -55,7 +55,7 @@ filterButtons.forEach((button) => {
       item.setAttribute("aria-pressed", String(active));
     });
     projectCards.forEach((card) => {
-      const categories = (card.dataset.categories || "").split(/\\s+/);
+      const categories = (card.dataset.categories || "").split(/\s+/);
       card.hidden = filter !== "all" && !categories.includes(filter);
     });
   });
@@ -113,6 +113,12 @@ filterButtons.forEach((button) => {
     }
     chart.append(svgEl("text",{x:18,y:281,fill:"#7184a4","font-size":9},"Synthetic portfolio data · refreshed at deploy time"));
   }
+  // Render a known synthetic baseline immediately; replace it with exact build metrics when fetched.
+  if (countNode) countNode.textContent = formatCount(500);
+  if (txNode) txNode.textContent = formatCount(10004);
+  if (footprintNode) footprintNode.textContent = "Refreshing…";
+  if (updatedNode) updatedNode.textContent = "Showing configured synthetic counts while exact file sizes refresh.";
+  drawChart(500, 10004);
   try {
     const response = await fetch(new URL("data/pipeline-metrics.json?build=" + Date.now(), document.baseURI), {cache:"no-store"});
     if (!response.ok) throw new Error("metrics unavailable");
