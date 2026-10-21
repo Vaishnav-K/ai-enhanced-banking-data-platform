@@ -6,6 +6,7 @@ on:
     paths:
       - "portfolio-site/**"
       - ".github/workflows/deploy-portfolio.yml"
+      - "src/generate_data.py"
   workflow_dispatch:
 
 permissions:
@@ -29,6 +30,40 @@ jobs:
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
+
+      - name: Generate synthetic dataset and portfolio metrics
+        run: |
+          python3 src/generate_data.py
+          python3 - <<'PY'
+          import csv, json
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          root = Path(".")
+          raw = root / "data" / "raw"
+          out = root / "portfolio-site" / "data"
+          out.mkdir(parents=True, exist_ok=True)
+
+          def measure(filename, key):
+              path = raw / filename
+              with path.open(newline="", encoding="utf-8") as stream:
+                  rows = sum(1 for _ in csv.DictReader(stream))
+              return {"rows": rows, "bytes": path.stat().st_size}
+
+          customers = measure("customers.csv", "customers")
+          transactions = measure("transactions.csv", "transactions")
+          metrics = {
+              "generated_at": datetime.now(timezone.utc).isoformat(),
+              "source": "deployment-generated synthetic CSV files",
+              "customers": customers,
+              "transactions": transactions,
+              "total_bytes": customers["bytes"] + transactions["bytes"],
+          }
+          (out / "pipeline-metrics.json").write_text(
+              json.dumps(metrics, indent=2) + "\\n", encoding="utf-8"
+          )
+          print(json.dumps(metrics, indent=2))
+          PY
 
       - name: Upload portfolio website
         uses: actions/upload-pages-artifact@v3
