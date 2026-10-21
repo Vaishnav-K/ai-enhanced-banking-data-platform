@@ -411,3 +411,11 @@ p{font-size:12px}
 @media(max-width:900px){.skill-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.featured-project{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "tags" "title" "description" "visual" "metrics" "actions" "walkthrough" "evidence";column-gap:0}.featured-project>h3{font-size:30px!important}.featured-run-card{margin:8px 0 18px}}
 @media(max-width:680px){.hero{padding-bottom:28px!important}.section-block{padding-top:43px!important}.proof-strip{padding-top:10px!important;padding-bottom:13px!important}.skill-grid{grid-template-columns:minmax(0,1fr)!important;gap:12px!important}.skill-card{min-height:0;padding:20px!important}.skill-card h3{font-size:16px!important}.skill-card>p{font-size:12px!important}.skill-hover-details{max-height:none;opacity:1;overflow:visible;margin-top:10px;border-top:1px solid var(--line);transform:none}.skill-hover-details>span{margin-top:10px}.featured-project{padding:20px!important}.featured-project>h3{font-size:28px!important}.run-card-header{flex-direction:column;gap:9px}.featured-project>.metric-row{gap:0}.featured-project>.metric-row div{padding:0 8px}.featured-project>.metric-row strong{font-size:17px}.featured-project>.metric-row span{font-size:9px}}
 @media(prefers-reduced-motion:reduce){.flow-arrow,.skill-card,.skill-hover-details{transition:none!important;transform:none!important}}
+
+
+/* Context for the compact synthetic demo: clarify scope without hiding measured input size */
+.demo-size-note{margin-top:13px;padding:12px 14px;border:1px solid rgba(107,220,242,.16);border-left:2px solid rgba(107,220,242,.55);border-radius:8px;background:rgba(107,220,242,.035)}
+.demo-size-note>strong{display:block;color:#dfe8fa;font-size:11px;line-height:1.5;margin-bottom:4px}
+.demo-size-note>p{margin:0;color:#91a3bf;font-size:11px;line-height:1.7}
+.scale-caption{font-size:10px;line-height:1.6}
+@media(max-width:520px){.demo-size-note{padding:11px 12px}.demo-size-note>p{font-size:11px}}
