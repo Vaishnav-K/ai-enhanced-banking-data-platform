@@ -477,3 +477,10 @@ p{font-size:12px}
   .skill-card-trigger:hover,.skill-card-trigger:focus-visible,.skill-card.is-open .skill-card-trigger{transform:none}
 }
 @media(prefers-reduced-motion:reduce){.skill-card-trigger,.skill-tools,.skill-chevron{transition:none!important}}
+
+
+/* Touch-device disclosure: taps toggle tool chips instead of a hover-only overlay. */
+@media(max-width:650px){
+  .skill-card:not(.is-open) .skill-tools{display:none!important}
+  .skill-card.is-open .skill-tools{display:block!important}
+}
