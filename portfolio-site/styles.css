@@ -526,3 +526,61 @@ p{font-size:12px}
  .timeline-heading .company{font-size:12px!important}
 }
 @media(prefers-reduced-motion:reduce){.skill-tools{animation:none!important}.skill-chevron{transition:none!important}}
+
+
+/* Mobile-only portfolio repair — desktop styles above remain unchanged. */
+@media (max-width: 650px) {
+  .section-wrap { width: calc(100% - 32px); }
+  .project-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 14px;
+    align-items: start;
+  }
+  .project-grid > .project-card,
+  .project-grid > .project-card.featured-project {
+    grid-column: auto !important;
+    width: 100%;
+    min-width: 0;
+    padding: 20px 18px;
+    overflow-wrap: anywhere;
+  }
+  .project-card h3,
+  .project-card.featured-project h3 {
+    font-size: clamp(24px, 7vw, 30px);
+    line-height: 1.2;
+    letter-spacing: -.035em;
+    overflow-wrap: anywhere;
+  }
+  .project-card > p { font-size: 13px; line-height: 1.8; }
+  .project-topline { gap: 10px; align-items: flex-start; }
+  .project-topline > span { min-width: 0; overflow-wrap: anywhere; }
+  .featured-project-badges { min-width: 0; flex-wrap: wrap; }
+  .project-tags { gap: 7px; }
+  .project-tags span { font-size: 10px; padding: 7px 9px; }
+  .project-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: stretch;
+    margin-bottom: 18px;
+  }
+  .filter-button {
+    max-width: 100%;
+    min-height: 42px;
+    padding: 10px 13px;
+    font-size: 12px;
+    line-height: 1.35;
+    white-space: normal;
+  }
+  .metric-row { flex-wrap: wrap; row-gap: 12px; }
+  .metric-row > div { min-width: 30%; padding: 0 10px; }
+  .project-actions { gap: 12px; }
+  .project-note { font-size: 11px; }
+  .section-heading { gap: 12px; }
+  .section-heading > p { font-size: 13px; line-height: 1.75; }
+  .site-header { min-width: 0; }
+  .brand { min-width: 0; gap: 8px; letter-spacing: .09em; }
+  .brand-name { font-size: 10px; }
+  .brand-role { font-size: 9px; letter-spacing: .06em; }
+  html, body { max-width: 100%; overflow-x: clip; }
+}
