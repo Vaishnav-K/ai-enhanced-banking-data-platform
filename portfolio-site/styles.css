@@ -608,3 +608,19 @@ p{font-size:12px}
 @media(max-width:650px) {
   .nav-hire { text-align: center; width: 100%; padding: 11px 13px; }
 }
+
+
+/* Balance the two data-scale panels on desktop without changing mobile stacking. */
+@media (min-width: 901px) {
+  .scale-grid { align-items: stretch !important; }
+  .scale-grid .scale-context {
+    align-self: stretch !important;
+    height: 100% !important;
+    min-height: 100%;
+    box-sizing: border-box;
+    justify-content: space-between;
+  }
+  .scale-grid .scale-context .scale-caption {
+    margin-top: 14px !important;
+  }
+}
