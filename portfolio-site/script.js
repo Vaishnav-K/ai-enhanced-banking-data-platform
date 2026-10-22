@@ -348,12 +348,32 @@ filterButtons.forEach((button) => {
 })();
 
 
-/* Skills disclosures: click to expand in normal document flow; never open on hover. */
+/* Skills interactions: desktop overlay preview + mobile in-flow accordion. */
 (() => {
-  const cards = Array.from(document.querySelectorAll(".skill-card"));
-  if (!cards.length) return;
+  const section = document.querySelector("#skills");
+  const grid = section?.querySelector(".skill-grid");
+  const cards = Array.from(section?.querySelectorAll(".skill-card") || []);
+  const overlay = document.querySelector("#skillOverlay");
+  const overlayIndex = document.querySelector("#skillOverlayIndex");
+  const overlayTitle = document.querySelector("#skillOverlayTitle");
+  const overlayChips = document.querySelector("#skillOverlayChips");
+  const closeButton = document.querySelector("#skillOverlayClose");
+  if (!grid || !cards.length || !overlay || !overlayIndex || !overlayTitle || !overlayChips || !closeButton) return;
 
-  const setOpen = (card, open) => {
+  const isMobileLayout = () => window.matchMedia("(max-width: 650px)").matches;
+  const canHover = () => !isMobileLayout() && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+  let hoverTimer = null;
+  let activeCard = null;
+  let pinned = false;
+
+  const clearHoverTimer = () => {
+    if (hoverTimer !== null) {
+      window.clearTimeout(hoverTimer);
+      hoverTimer = null;
+    }
+  };
+
+  const setMobileOpen = (card, open) => {
     const button = card.querySelector(".skill-card-trigger");
     const panel = card.querySelector(".skill-tools");
     card.classList.toggle("is-open", open);
@@ -364,25 +384,90 @@ filterButtons.forEach((button) => {
     }
   };
 
+  const hideOverlay = () => {
+    clearHoverTimer();
+    overlay.hidden = true;
+    overlay.setAttribute("aria-hidden", "true");
+    cards.forEach((card) => {
+      card.classList.remove("is-active");
+      const button = card.querySelector(".skill-card-trigger");
+      if (button) button.setAttribute("aria-expanded", "false");
+    });
+    activeCard = null;
+    pinned = false;
+  };
+
+  const showOverlay = (card, keepOpen) => {
+    clearHoverTimer();
+    if (!card) return;
+    activeCard = card;
+    pinned = keepOpen;
+    cards.forEach((other) => {
+      other.classList.toggle("is-active", other === card);
+      const button = other.querySelector(".skill-card-trigger");
+      if (button) button.setAttribute("aria-expanded", String(other === card));
+    });
+    overlayIndex.textContent = card.querySelector(".skill-index")?.textContent.trim() || "";
+    overlayTitle.textContent = card.querySelector(".skill-title")?.textContent.trim() || "";
+    const chips = card.querySelector(".skill-tool-chips");
+    overlayChips.innerHTML = chips ? chips.innerHTML : "";
+    overlay.hidden = false;
+    overlay.setAttribute("aria-hidden", "false");
+  };
+
   cards.forEach((card) => {
     const button = card.querySelector(".skill-card-trigger");
     const panel = card.querySelector(".skill-tools");
     if (!button || !panel) return;
-    setOpen(card, false);
+    setMobileOpen(card, false);
+
     button.addEventListener("click", () => {
-      const willOpen = !card.classList.contains("is-open");
-      cards.forEach((other) => setOpen(other, false));
-      setOpen(card, willOpen);
+      if (isMobileLayout() || !canHover()) {
+        const willOpen = !card.classList.contains("is-open");
+        cards.forEach((other) => setMobileOpen(other, false));
+        setMobileOpen(card, willOpen);
+        return;
+      }
+      showOverlay(card, true);
+    });
+
+    card.addEventListener("pointerenter", (event) => {
+      if (!canHover() || event.pointerType === "touch" || pinned) return;
+      clearHoverTimer();
+      // A brief delay keeps quick clicks on the category button working naturally.
+      hoverTimer = window.setTimeout(() => showOverlay(card, false), 240);
     });
   });
 
+  grid.addEventListener("pointerleave", () => {
+    clearHoverTimer();
+    if (canHover() && !pinned) hideOverlay();
+  });
+
+  overlay.addEventListener("pointerenter", clearHoverTimer);
+  overlay.addEventListener("click", (event) => {
+    if (event.target.closest(".skill-overlay-close")) return;
+    // Clicking the preview keeps it open until dismissed.
+    pinned = true;
+  });
+
+  closeButton.addEventListener("click", hideOverlay);
+  document.addEventListener("pointerdown", (event) => {
+    if (!overlay.hidden && pinned && !grid.contains(event.target)) hideOverlay();
+  });
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    const openCard = cards.find((card) => card.classList.contains("is-open"));
-    if (openCard) {
-      setOpen(openCard, false);
-      const button = openCard.querySelector(".skill-card-trigger");
-      if (button) button.focus();
+    if (isMobileLayout()) {
+      const openCard = cards.find((card) => card.classList.contains("is-open"));
+      if (openCard) {
+        setMobileOpen(openCard, false);
+        openCard.querySelector(".skill-card-trigger")?.focus();
+      }
+    } else if (!overlay.hidden) {
+      hideOverlay();
+      activeCard?.querySelector(".skill-card-trigger")?.focus();
     }
   });
+
+  hideOverlay();
 })();
