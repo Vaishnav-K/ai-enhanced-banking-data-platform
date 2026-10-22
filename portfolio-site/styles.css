@@ -584,3 +584,27 @@ p{font-size:12px}
   .brand-role { font-size: 9px; letter-spacing: .06em; }
   html, body { max-width: 100%; overflow-x: clip; }
 }
+
+
+/* Hire Me navigation CTA */
+.nav-hire {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 13px;
+  border: 1px solid rgba(107,220,242,.42);
+  border-radius: 9px;
+  background: linear-gradient(115deg,rgba(181,168,255,.16),rgba(114,216,238,.13));
+  color: #d8f7ff;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.nav-hire:hover {
+  border-color: var(--cyan);
+  color: #fff;
+}
+@media(max-width:650px) {
+  .nav-hire { text-align: center; width: 100%; padding: 11px 13px; }
+}
