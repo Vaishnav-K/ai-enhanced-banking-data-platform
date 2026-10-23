@@ -1,6 +1,61 @@
 # AI-Enhanced Banking Data Platform
 
-A synthetic banking data engineering portfolio project built with Python, DuckDB, SQL, Parquet, PySpark, Apache Airflow, Docker, and Amazon S3. It demonstrates batch ETL, incremental processing, data quality controls, analytics, anomaly screening, runtime reconciliation, pipeline observability, automated testing, and cloud object storage.
+[![Banking Platform CI](https://github.com/Vaishnav-K/ai-enhanced-banking-data-platform/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Vaishnav-K/ai-enhanced-banking-data-platform/actions/workflows/ci.yml)
+[![Spark Pipeline CI](https://github.com/Vaishnav-K/ai-enhanced-banking-data-platform/actions/workflows/spark-ci.yml/badge.svg?branch=main)](https://github.com/Vaishnav-K/ai-enhanced-banking-data-platform/actions/workflows/spark-ci.yml)
+[![GitHub Pages](https://github.com/Vaishnav-K/ai-enhanced-banking-data-platform/actions/workflows/deploy-portfolio.yml/badge.svg?branch=main)](https://github.com/Vaishnav-K/ai-enhanced-banking-data-platform/actions/workflows/deploy-portfolio.yml)
+
+A reproducible, synthetic banking data platform that demonstrates more than a basic ETL job: **data validation, batch and incremental processing, independent-engine reconciliation, traceable run evidence, and evidence-based operational diagnostics**.
+
+Built with **Python, DuckDB, SQL, Parquet, PySpark, Apache Airflow, Docker, and Amazon S3**. The project is designed to be explored locally without AWS credentials; S3 upload and the Airflow end-to-end path are optional, explicitly enabled workflows.
+
+## Project at a glance
+
+| Engineering concern | What is implemented | Evidence to inspect |
+|---|---|---|
+| Data correctness | Schema and value validation, deduplication, referential checks, quarantine with rejection reasons | Quality reports and Parquet outputs |
+| Batch + incremental ETL | Initial transaction processing plus duplicate-aware incremental ingestion | Main and incremental pipeline reports |
+| Independent processing paths | DuckDB processing compared with PySpark output | Cross-engine reconciliation report |
+| Operational traceability | Run IDs, stage attempts, bounded retries, artifact observations and lineage | `data/processed/pipeline_run_report.json` and lineage reports |
+| Quality and recovery intelligence | Threshold-based anomaly screening, quality investigation, read-only recovery assessments | Investigation and recovery reports |
+| Orchestration and cloud | Airflow DAG in Docker Compose; checksum-aware, audited S3 raw-file ingestion | Airflow task logs and S3 ingestion audit |
+| Engineering controls | Unit tests and separate CI for the core pipeline and Spark | GitHub Actions badges above |
+
+### Demonstrated sample run
+
+These results come from the project's **synthetic banking dataset**, not real customer records or a production workload.
+
+| Main pipeline measure | Observed result |
+|---|---:|
+| Synthetic customers | 500 |
+| Raw transaction rows | 10,004 |
+| Rows after transaction-ID deduplication | 10,003 |
+| Valid transactions written to Parquet | 10,000 |
+| Quarantined records with rejection reasons | 3 |
+| Reconciliation check | Passed |
+
+The incremental sample contains 4 incoming transactions, producing 2 valid rows and 2 quarantined rows. See the detailed results and limitations below.
+
+### Quick start — local run
+
+From PowerShell on Windows, with Python 3.12 installed:
+
+```powershell
+git clone https://github.com/Vaishnav-K/ai-enhanced-banking-data-platform.git
+Set-Location .\ai-enhanced-banking-data-platform
+powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
+.\.venv312\Scripts\python.exe .\src\generate_data.py
+.\.venv312\Scripts\python.exe .\src\demo.py
+```
+
+The local pipeline uses synthetic data and does not require S3 credentials. For the full orchestration demo, continue to **Run with Airflow and Docker** below.
+
+### Best way to review the project
+
+1. Read the [architecture and design principles](docs/architecture.md).
+2. Follow the [end-to-end demo walkthrough](docs/demo-walkthrough.md).
+3. Run the local demo and inspect `data/processed/pipeline_run_report.json`.
+4. Generate and open the platform health dashboard using the command later in this README.
+5. Review the separate [core pipeline CI](https://github.com/Vaishnav-K/ai-enhanced-banking-data-platform/actions/workflows/ci.yml) and [Spark CI](https://github.com/Vaishnav-K/ai-enhanced-banking-data-platform/actions/workflows/spark-ci.yml) runs.
 
 ## Architecture
 
@@ -192,6 +247,15 @@ Set-Location ..\..
 ```
 
 S3 tests use mocked AWS responses and do not upload real objects.
+
+## Scope and implementation boundaries
+
+- **Synthetic data only:** generated customer and transaction records are used throughout this project.
+- **Anomaly screening:** the current implementation uses configured thresholds and deterministic rules; it is not a trained fraud-detection model.
+- **Investigation and recovery:** findings and recovery suggestions are evidence-driven and read-only. They do not automatically restart jobs or remediate production systems.
+- **AI boundary:** this version does not require an LLM API or include a connected generative-AI agent. The current strengths are data engineering, diagnostics, and decision support; a model-backed capability would be a separately scoped extension.
+- **Cloud boundary:** local tests and the normal local demo do not require AWS. The optional S3 upload and Airflow path need credentials for a bucket you control.
+- **Performance claims:** sample row counts are measured from the project's generated data; they are not evidence of production-scale throughput or an SLA.
 
 ## Portfolio Documentation
 
