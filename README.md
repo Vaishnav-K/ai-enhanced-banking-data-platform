@@ -273,3 +273,13 @@ Generate the dashboard:
 Open `reports/platform_health_dashboard.html` in a browser. The dashboard is generated from local pipeline evidence and can be refreshed by rerunning the command.
 
 The project uses synthetic banking data. Review the actual run evidence and documented limitations before interpreting metrics as production guarantees.
+
+
+## AWS Athena validation evidence
+
+The existing curated Parquet datasets were also queried through Amazon Athena using the AWS Glue Data Catalog. The recorded development run validated 500 customer rows and 10,000 transaction rows, confirmed 10,000 distinct transaction IDs, produced a transaction-status breakdown, ran customer/transaction join analytics, and returned zero issues for the selected null, negative-amount, and orphan-transaction checks.
+
+- **[AWS Athena + S3 validation report](docs/aws-athena-s3-validation.md)** — schemas, observed results, limitations, and reproduction steps.
+- **[Reproducible Athena SQL](sql/athena_validation.sql)** — external-table DDL and validation queries.
+
+These are results from synthetic data and a development run, not production metrics. The report does not expose the bucket name, credentials, or private AWS configuration. To reproduce the queries, point the SQL at a bucket you control and configure Athena's query-results S3 location.
