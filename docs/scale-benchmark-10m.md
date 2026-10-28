@@ -100,3 +100,26 @@ Do not stage `data/scale/` or generated Parquet/CSV files. Publish only compact 
 ## 7. Publish actual results after a successful run
 
 Do not fabricate timings or claim success before a run completes. Copy the successful report to a reviewed, sanitized evidence file such as `reports/scale-benchmark-10m-results-public.json`, update the README with the measured results, then commit only the code, documentation, and sanitized evidence. A GitHub Actions or portfolio badge should be added only if it is backed by a repeatable automated workflow.
+
+## Measured local run (29 October 2026)
+
+The 10-million-transaction Spark run completed successfully on a local Windows environment using synthetic data.
+
+| Measure | Observed result |
+|---|---:|
+| Customers | 100,000 |
+| Raw transactions | 10,000,000 |
+| Deduplicated transactions | 10,000,000 |
+| Duplicate rows removed | 0 |
+| Valid transactions | 10,000,000 |
+| Quarantined transactions | 0 |
+| Reconciliation | PASS |
+| Elapsed time | 356.266 seconds |
+| Throughput | 28,068.91 raw transactions/second |
+| Spark version | 3.5.7 |
+| Master | `local[2]` |
+| Shuffle partitions | 16 |
+
+The elapsed time includes Spark startup, reads, transformations, writes, and grouped analytics. This is a local synthetic benchmark, not a production workload, cluster benchmark, or SLA. The Windows run wrote CSV output; it does not measure Parquet-write performance.
+
+Sanitized evidence is published at [`reports/scale-benchmark-10m-results-public.json`](../reports/scale-benchmark-10m-results-public.json). The full local report contains machine-specific input/output paths and should remain local. Generated scale data should remain out of Git.
