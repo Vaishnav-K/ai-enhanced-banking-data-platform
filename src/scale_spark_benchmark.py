@@ -8,6 +8,7 @@ Example:
   python src/scale_spark_benchmark.py --input-dir data/scale/raw --output-dir data/scale/spark_processed --report reports/scale-benchmark-results.json
 """
 import argparse
+import csv
 import json
 import time
 from datetime import datetime, timezone
@@ -33,6 +34,18 @@ def parse_args():
     return parser.parse_args()
 
 
+def write_dataframe_csv(dataframe, output_file):
+    """Stream Spark rows to one CSV file without Hadoop's Windows output committer."""
+    output_file = Path(output_file)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    with output_file.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=dataframe.columns, extrasaction="ignore")
+        writer.writeheader()
+        for row in dataframe.toLocalIterator():
+            writer.writerow(row.asDict(recursive=True))
+    return output_file
+
+
 def file_bytes(path):
     if not path.exists():
         return 0
@@ -53,9 +66,9 @@ def main():
         if not path.is_file():
             raise FileNotFoundError(f"Required input file not found: {path}")
 
-    valid_output = output_dir / "valid_transactions"
-    quarantine_output = output_dir / "quarantined_transactions"
-    analytics_output = output_dir / "transaction_analytics"
+    valid_output = output_dir / "valid_transactions.csv"
+    quarantine_output = output_dir / "quarantined_transactions.csv"
+    analytics_output = output_dir / "transaction_analytics.csv"
     if output_dir.exists() and any(output_dir.iterdir()) and not args.overwrite:
         raise FileExistsError(
             f"Output directory is not empty: {output_dir}. Choose a new output path "
@@ -153,8 +166,8 @@ def main():
         }
 
         print("Writing Parquet outputs...")
-        valid.write.mode("overwrite" if args.overwrite else "errorifexists").parquet(str(valid_output))
-        quarantined.write.mode("overwrite" if args.overwrite else "errorifexists").parquet(str(quarantine_output))
+        write_dataframe_csv(valid, valid_output)
+        write_dataframe_csv(quarantined, quarantine_output)
 
         analytics = (
             valid.groupBy("transaction_type", "status")
@@ -165,7 +178,7 @@ def main():
             )
             .orderBy("transaction_type", "status")
         )
-        analytics.write.mode("overwrite" if args.overwrite else "errorifexists").parquet(str(analytics_output))
+        write_dataframe_csv(analytics, analytics_output)
         analytics_rows = [
             {
                 "transaction_type": row["transaction_type"],
@@ -208,9 +221,9 @@ def main():
             },
             "analytics": analytics_rows,
             "output_sizes_bytes": {
-                "valid_transactions_parquet": file_bytes(valid_output),
-                "quarantined_transactions_parquet": file_bytes(quarantine_output),
-                "transaction_analytics_parquet": file_bytes(analytics_output),
+                "valid_transactions_csv": file_bytes(valid_output),
+                "quarantined_transactions_csv": file_bytes(quarantine_output),
+                "transaction_analytics_csv": file_bytes(analytics_output),
             },
             "elapsed_seconds": elapsed,
             "rows_per_second_raw_transactions": round(raw_count / elapsed, 2) if elapsed else None,
