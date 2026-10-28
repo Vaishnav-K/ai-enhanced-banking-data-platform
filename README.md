@@ -283,3 +283,14 @@ The existing curated Parquet datasets were also queried through Amazon Athena us
 - **[Reproducible Athena SQL](sql/athena_validation.sql)** — external-table DDL and validation queries.
 
 These are results from synthetic data and a development run, not production metrics. The report does not expose the bucket name, credentials, or private AWS configuration. To reproduce the queries, point the SQL at a bucket you control and configure Athena's query-results S3 location.
+
+
+## 10-million-transaction scale experiment
+
+An isolated scale benchmark is available to generate a larger synthetic dataset and process it through Spark without overwriting the baseline demo data.
+
+- **[10-million-transaction benchmark instructions](docs/scale-benchmark-10m.md)** — generation, validation, Spark execution, output inspection, and safe evidence publication.
+- Scale generator: `src/generate_scale_data.py`
+- Spark benchmark: `src/scale_spark_benchmark.py`
+
+**Scale benchmark results are not claimed here yet.** Publish measured performance only after the local 10-million-row run completes and the JSON report passes reconciliation. Generated CSV and Parquet data should remain out of Git.
