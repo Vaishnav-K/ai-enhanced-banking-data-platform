@@ -73,7 +73,7 @@ print("PASS: 10-million-row input validation")
 .\.venv312\Scripts\python.exe .\src\scale_spark_benchmark.py --input-dir data\scale\raw-10m --output-dir data\scale\spark_processed_10m --report reports\scale-benchmark-10m-results.json --master "local[2]" --shuffle-partitions 8
 ```
 
-The script reads the 10-million-row CSV, deduplicates by transaction ID, validates amounts/timestamps/statuses/customer references, writes valid and quarantined Parquet outputs, runs grouped analytics, and writes a JSON report. The output path is separate from the baseline. It refuses to overwrite a non-empty output directory unless `--overwrite` is supplied.
+The script reads the 10-million-row CSV, deduplicates by transaction ID, validates amounts/timestamps/statuses/customer references, streams valid and quarantined results to CSV files using Spark's `toLocalIterator()` so the output step avoids Hadoop's failing Windows native file-committer path, runs grouped analytics, and writes a JSON report. The output path is separate from the baseline. It refuses to overwrite a non-empty output directory unless `--overwrite` is supplied.
 
 If the run fails, do not immediately rerun with `--overwrite`. Read the exception and inspect the scale output directory first.
 
@@ -85,7 +85,7 @@ Get-ChildItem .\data\scale\spark_processed_10m -Recurse -File |
     Measure-Object -Property Length -Sum
 ```
 
-The JSON report records the observed row counts, reconciliation result, elapsed time, throughput, input sizes, output sizes, Spark version, and execution settings. These are measured only if the benchmark finishes and the report is produced.
+The JSON report records the observed row counts, reconciliation result, elapsed time, throughput, input sizes, output sizes, Spark version, and execution settings. On Windows, outputs are CSV because Hadoop's Parquet output committer can fail with `NativeIO$Windows.access0` when the matching native Hadoop library is unavailable. If Parquet output is required, run the benchmark in a Linux/WSL or Docker environment with compatible Hadoop libraries. These are measured only if the benchmark finishes and the report is produced.
 
 ## 6. Keep generated data out of Git
 
