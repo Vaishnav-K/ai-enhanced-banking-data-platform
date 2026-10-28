@@ -165,7 +165,7 @@ def main():
             for row in quarantined.groupBy("quarantine_reason").count().collect()
         }
 
-        print("Writing Parquet outputs...")
+        print("Streaming Spark outputs to CSV (Windows-safe output path)...")
         write_dataframe_csv(valid, valid_output)
         write_dataframe_csv(quarantined, quarantine_output)
 
