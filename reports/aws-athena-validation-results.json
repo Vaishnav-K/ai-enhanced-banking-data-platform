@@ -1,0 +1,126 @@
+{
+  "evidence_type": "observed_development_run",
+  "evidence_date": "2026-10-29",
+  "environment": {
+    "service": "Amazon Athena",
+    "catalog": "AWS Glue Data Catalog",
+    "region": "ap-southeast-2",
+    "database": "banking_analytics",
+    "dataset": "synthetic banking data",
+    "bucket_name": "redacted_not_published"
+  },
+  "tables": {
+    "banking_analytics.customers_v2": {
+      "schema": [
+        {
+          "column": "customer_id",
+          "type": "STRING"
+        },
+        {
+          "column": "customer_name",
+          "type": "STRING"
+        },
+        {
+          "column": "account_type",
+          "type": "STRING"
+        },
+        {
+          "column": "registration_date",
+          "type": "DATE"
+        }
+      ],
+      "row_count": 500
+    },
+    "banking_analytics.transactions_v2": {
+      "schema": [
+        {
+          "column": "transaction_id",
+          "type": "STRING"
+        },
+        {
+          "column": "customer_id",
+          "type": "STRING"
+        },
+        {
+          "column": "transaction_type",
+          "type": "STRING"
+        },
+        {
+          "column": "amount",
+          "type": "DECIMAL(18,2)"
+        },
+        {
+          "column": "transaction_timestamp",
+          "type": "TIMESTAMP"
+        },
+        {
+          "column": "status",
+          "type": "STRING"
+        }
+      ],
+      "row_count": 10000,
+      "unique_transaction_ids": 10000,
+      "distinct_transaction_customers": 500,
+      "sum_amount": 497312974.52,
+      "amount_currency": "not independently verified"
+    }
+  },
+  "status_distribution": [
+    {
+      "status": "FAILED",
+      "count": 3387,
+      "percentage": 33.87
+    },
+    {
+      "status": "SUCCESS",
+      "count": 3345,
+      "percentage": 33.45
+    },
+    {
+      "status": "PENDING",
+      "count": 3268,
+      "percentage": 32.68
+    }
+  ],
+  "account_type_aggregation": [
+    {
+      "account_type": "SAVINGS",
+      "transaction_count": 3480,
+      "customers_with_transactions": 175,
+      "total_amount": 168971234.34,
+      "successful_transactions": 1146,
+      "failed_transactions": 1168
+    },
+    {
+      "account_type": "SALARY",
+      "transaction_count": 3293,
+      "customers_with_transactions": 164,
+      "total_amount": 165094280.96,
+      "successful_transactions": 1139,
+      "failed_transactions": 1102
+    },
+    {
+      "account_type": "CURRENT",
+      "transaction_count": 3227,
+      "customers_with_transactions": 161,
+      "total_amount": 163247459.22,
+      "successful_transactions": 1060,
+      "failed_transactions": 1117
+    }
+  ],
+  "data_quality_checks": {
+    "total_transactions": 10000,
+    "null_transaction_ids": 0,
+    "null_customer_ids": 0,
+    "null_amounts": 0,
+    "negative_amounts": 0,
+    "orphan_transactions": 0
+  },
+  "limitations": [
+    "Results reflect one development validation session, not production metrics or an SLA.",
+    "All records are synthetic.",
+    "The total amount currency was not independently established.",
+    "Data quality conclusions apply only to the checks listed here.",
+    "AWS credentials, account-specific bucket names, and private configuration are not published."
+  ]
+}
