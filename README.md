@@ -293,4 +293,24 @@ An isolated scale benchmark is available to generate a larger synthetic dataset 
 - Scale generator: `src/generate_scale_data.py`
 - Spark benchmark: `src/scale_spark_benchmark.py`
 
-**Scale benchmark results are not claimed here yet.** Publish measured performance only after the local 10-million-row run completes and the JSON report passes reconciliation. Generated CSV and Parquet data should remain out of Git.
+### Measured local Spark run
+
+A completed run processed **10,000,000 synthetic transactions** with Spark 3.5.7 on `local[2]` and 16 shuffle partitions.
+
+| Measure | Observed result |
+|---|---:|
+| Customers | 100,000 |
+| Raw transactions | 10,000,000 |
+| Deduplicated transactions | 10,000,000 |
+| Valid transactions | 10,000,000 |
+| Quarantined transactions | 0 |
+| Reconciliation | **PASS** |
+| Elapsed time | 356.266 seconds |
+| Throughput | **28,068.91 raw transactions/second** |
+
+Elapsed time includes Spark startup, reads, transformations, writes, and analytics. This is a **local synthetic-data benchmark**, not production workload evidence or an SLA. The run used CSV output on Windows and does not demonstrate Parquet-write performance.
+
+- **[Sanitized benchmark results](reports/scale-benchmark-10m-results-public.json)** — measured counts, runtime, configuration, output sizes, and limitations.
+- **[Benchmark instructions and methodology](docs/scale-benchmark-10m.md)** — reproduce the experiment and inspect the evidence.
+
+Generated CSV and Parquet datasets should remain out of Git.
