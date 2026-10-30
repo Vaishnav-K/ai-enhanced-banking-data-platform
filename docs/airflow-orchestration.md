@@ -49,7 +49,7 @@ The task returns a compact validation summary to Airflow XCom. A pipeline report
 
 ## Triggering the DAG
 
-1. Start Docker Compose from `orchestration/airflow`.
+1. Start Docker Compose from `orchestration/airflow`. The worker bind-mounts the project `data/` directory using `BANKING_DATA_DIR` (default `../../data` relative to this Compose folder), so the tracked raw CSV inputs remain visible inside the container and outputs remain in the local checkout.
 2. Open `http://localhost:8080`.
 3. Unpause `banking_data_platform_pipeline` if required.
 4. Trigger a manual run.

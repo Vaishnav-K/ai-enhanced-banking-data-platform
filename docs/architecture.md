@@ -55,7 +55,7 @@ The Airflow DAG is defined in `orchestration/airflow/dags/banking_data_platform_
 
 The internal ETL stage sequence, retry policy, lineage recording, and report generation remain owned by `src/demo.py`; Airflow provides the outer orchestration and an independent evidence gate. The DAG limits active runs to one because executions share local output paths and lineage storage. The demo runner owns bounded stage-level retries, so Airflow does not automatically replay the entire pipeline after a partial execution.
 
-The custom image in `orchestration/airflow/Dockerfile` includes the project source, Java 17, project Python dependencies, and PySpark 3.5.7. Docker Compose runs the Airflow services and preserves the project `data/` directory in a named volume. S3 configuration is supplied through worker environment variables, not a hard-coded bucket name.
+The custom image in `orchestration/airflow/Dockerfile` includes the project source, Java 17, project Python dependencies, and PySpark 3.5.7. Docker Compose bind-mounts the repository's `data/` directory into the worker (default path `../../data` from `orchestration/airflow`). This keeps tracked raw CSV inputs visible instead of masking them with a newly created empty named volume, and makes generated outputs visible in the checkout. S3 configuration is supplied through worker environment variables, not a hard-coded bucket name.
 
 ## Data and cloud boundaries
 

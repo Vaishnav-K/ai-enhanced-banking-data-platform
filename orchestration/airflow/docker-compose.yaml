@@ -201,7 +201,8 @@ services:
       - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
       - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
       - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
-      - banking-data-volume:/opt/banking-platform/data
+      # Bind the checked-out project data directory so the tracked raw CSVs are not hidden by an empty named volume.
+      - ${BANKING_DATA_DIR:-../../data}:/opt/banking-platform/data
 
   airflow-triggerer:
     <<: *airflow-common
@@ -349,4 +350,3 @@ services:
 
 volumes:
   postgres-db-volume:
-  banking-data-volume:

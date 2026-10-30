@@ -230,6 +230,15 @@ class TestPipelineEvidenceValidation(unittest.TestCase):
 
 
 class TestAirflowDagSource(unittest.TestCase):
+    def test_worker_uses_repository_data_bind_mount(self):
+        compose_path = ROOT / "orchestration/airflow/docker-compose.yaml"
+        compose = compose_path.read_text(encoding="utf-8")
+        self.assertIn(
+            "${BANKING_DATA_DIR:-../../data}:/opt/banking-platform/data",
+            compose,
+        )
+        self.assertNotIn("banking-data-volume:/opt/banking-platform/data", compose)
+
     def test_dag_parses_and_declares_three_tasks(self):
         path = ROOT / "orchestration/airflow/dags/banking_data_platform_pipeline.py"
         tree = ast.parse(path.read_text(encoding="utf-8-sig"))
