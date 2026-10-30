@@ -298,7 +298,7 @@ The scale generator defaults to **100,000 customers and 10,000,000 transactions*
 Generate the default 10M mock:
 
 ```powershell
-.\\.venv312\\Scripts\\python.exe .\\src\\generate_scale_data.py
+.\.venv312\Scripts\python.exe .\src\generate_scale_data.py
 ```
 
 ### Measured local Spark run
