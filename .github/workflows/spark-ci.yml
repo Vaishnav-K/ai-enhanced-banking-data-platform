@@ -36,6 +36,9 @@ jobs:
       - name: Run DuckDB pipeline
         run: python src/etl_pipeline.py
 
+      - name: Run incremental ETL for regression-test prerequisites
+        run: python src/incremental_pipeline.py
+
       - name: Run Spark pipeline
         run: python src/spark_pipeline.py
 
