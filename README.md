@@ -293,6 +293,14 @@ An isolated scale benchmark is available to generate a larger synthetic dataset 
 - Scale generator: `src/generate_scale_data.py`
 - Spark benchmark: `src/scale_spark_benchmark.py`
 
+The scale generator defaults to **100,000 customers and 10,000,000 transactions** and writes to `data/scale/raw`, keeping the 500-customer / 10,000-transaction baseline mock under `data/raw` unchanged. It refuses to overwrite existing scale input files unless `--overwrite` is supplied.
+
+Generate the default 10M mock:
+
+```powershell
+.\.venv312\Scripts\python.exe .\src\generate_scale_data.py
+```
+
 ### Measured local Spark run
 
 A completed run processed **10,000,000 synthetic transactions** with Spark 3.5.7 on `local[2]` and 16 shuffle partitions.

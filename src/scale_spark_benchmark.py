@@ -15,9 +15,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from pyspark import StorageLevel
-from pyspark.sql import SparkSession, functions as F
+from pyspark.sql import SparkSession, Window, functions as F
 from pyspark.sql.types import (
     StructType, StructField, StringType,
+)
+
+from transaction_rules import (
+    TRANSACTION_TYPES, TRANSACTION_STATUSES, DEDUPLICATION_COLUMNS,
 )
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -115,7 +119,8 @@ def main():
         customers = (
             spark.read.option("header", True).schema(customer_schema).csv(str(customers_path))
             .select(
-                F.trim("customer_id").alias("customer_id"),
+                F.when(F.trim("customer_id") == "", F.lit(None))
+                 .otherwise(F.trim("customer_id")).alias("customer_id"),
                 F.trim("customer_name").alias("customer_name"),
                 F.upper(F.trim("account_type")).alias("account_type"),
                 F.to_date("registration_date", "yyyy-MM-dd").alias("registration_date"),
@@ -124,34 +129,77 @@ def main():
         transactions_raw = (
             spark.read.option("header", True).schema(transaction_schema).csv(str(transactions_path))
             .select(
-                F.trim("transaction_id").alias("transaction_id"),
-                F.trim("customer_id").alias("customer_id"),
+                F.when(F.trim("transaction_id") == "", F.lit(None))
+                 .otherwise(F.trim("transaction_id")).alias("transaction_id"),
+                F.when(F.trim("customer_id") == "", F.lit(None))
+                 .otherwise(F.trim("customer_id")).alias("customer_id"),
                 F.upper(F.trim("transaction_type")).alias("transaction_type"),
                 F.expr("try_cast(amount AS DECIMAL(18,2))").alias("amount"),
                 F.to_timestamp("transaction_timestamp", "yyyy-MM-dd HH:mm:ss").alias("transaction_timestamp"),
                 F.upper(F.trim("status")).alias("status"),
             )
+            .withColumn("_source_row_id", F.monotonically_increasing_id())
         )
 
         customer_count = customers.count()
         raw_count = transactions_raw.count()
-        transactions = transactions_raw.dropDuplicates(["transaction_id"])
+        dedupe_window = (
+            Window.partitionBy(
+                F.col("transaction_id"),
+                F.when(
+                    F.col("transaction_id").isNull(),
+                    F.col("_source_row_id"),
+                ).otherwise(F.lit(0)),
+            )
+            .orderBy(*[
+                F.col(column).asc_nulls_first()
+                for column in DEDUPLICATION_COLUMNS
+            ])
+        )
+        ranked_transactions = transactions_raw.withColumn(
+            "_dedupe_rank", F.row_number().over(dedupe_window)
+        )
+        transactions = (
+            ranked_transactions.filter(F.col("_dedupe_rank") == 1)
+            .drop("_dedupe_rank", "_source_row_id")
+        )
         deduplicated_count = transactions.count()
-        duplicate_count = raw_count - deduplicated_count
+        duplicate_count = ranked_transactions.filter(
+            F.col("_dedupe_rank") > 1
+        ).count()
 
         customer_keys = customers.select("customer_id").distinct().withColumn("customer_exists", F.lit(True))
+        field_reasons = F.concat_ws(
+            "; ",
+            F.when(F.col("transaction_id").isNull(), "MISSING_TRANSACTION_ID"),
+            F.when(F.col("customer_id").isNull(), "MISSING_CUSTOMER_ID"),
+            F.when(
+                F.col("transaction_type").isNull()
+                | (~F.col("transaction_type").isin(*TRANSACTION_TYPES)),
+                "INVALID_TRANSACTION_TYPE",
+            ),
+            F.when(
+                F.col("amount").isNull() | (F.col("amount") <= 0),
+                "INVALID_AMOUNT",
+            ),
+            F.when(F.col("transaction_timestamp").isNull(), "INVALID_TIMESTAMP"),
+            F.when(
+                F.col("status").isNull()
+                | (~F.col("status").isin(*TRANSACTION_STATUSES)),
+                "INVALID_STATUS",
+            ),
+        )
         checked = (
             transactions.join(customer_keys, on="customer_id", how="left")
+            .withColumn("_field_rejection_reason", field_reasons)
             .withColumn(
                 "quarantine_reason",
-                F.when(F.col("transaction_id").isNull() | (F.col("transaction_id") == ""), "MISSING_TRANSACTION_ID")
-                .when(F.col("customer_id").isNull() | (F.col("customer_id") == ""), "MISSING_CUSTOMER_ID")
-                .when(F.col("amount").isNull() | (F.col("amount") <= 0), "INVALID_AMOUNT")
-                .when(F.col("transaction_timestamp").isNull(), "INVALID_TIMESTAMP")
-                .when(~F.col("transaction_type").isin("CREDIT", "DEBIT", "TRANSFER", "PAYMENT"), "INVALID_TRANSACTION_TYPE")
-                .when(~F.col("status").isin("SUCCESS", "FAILED", "PENDING"), "INVALID_STATUS")
-                .when(F.col("customer_exists").isNull(), "UNKNOWN_CUSTOMER_ID")
+                F.when(
+                    F.col("_field_rejection_reason") != "",
+                    F.col("_field_rejection_reason"),
+                ).when(F.col("customer_exists").isNull(), "UNKNOWN_CUSTOMER_ID"),
             )
+            .drop("_field_rejection_reason")
             .persist(StorageLevel.DISK_ONLY)
         )
 
@@ -191,7 +239,10 @@ def main():
         ]
 
         elapsed = round(time.perf_counter() - timer, 3)
-        reconciliation_passed = deduplicated_count == valid_count + quarantine_count
+        reconciliation_passed = (
+            raw_count == deduplicated_count + duplicate_count
+            and deduplicated_count == valid_count + quarantine_count
+        )
         report = {
             "benchmark_name": "banking-platform-spark-scale",
             "run_started_at_utc": run_started,
@@ -217,6 +268,7 @@ def main():
             "quarantine_reasons": quarantine_reasons,
             "reconciliation": {
                 "passed": reconciliation_passed,
+                "raw_equals_deduplicated_plus_duplicates": raw_count == deduplicated_count + duplicate_count,
                 "deduplicated_equals_valid_plus_quarantined": deduplicated_count == valid_count + quarantine_count,
             },
             "analytics": analytics_rows,
