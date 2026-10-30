@@ -1,7 +1,9 @@
-"""Generate a large synthetic banking dataset without holding all transactions in memory.
+"""Generate scalable synthetic banking data with bounded transaction-row memory.
 
-Example:
-    python src/generate_scale_data.py --customers 100000 --transactions 1000000
+Default run creates 100,000 customers and 10,000,000 transactions:
+    python src/generate_scale_data.py
+
+The scale dataset is isolated under data/scale/raw and never replaces data/raw.
 """
 import argparse
 import csv
@@ -16,12 +18,8 @@ TRANSACTION_TYPES = ("CREDIT", "DEBIT", "TRANSFER", "PAYMENT")
 STATUSES = ("SUCCESS", "FAILED", "PENDING")
 CUSTOMER_FIELDS = ("customer_id", "customer_name", "account_type", "registration_date")
 TRANSACTION_FIELDS = (
-    "transaction_id",
-    "customer_id",
-    "transaction_type",
-    "amount",
-    "transaction_timestamp",
-    "status",
+    "transaction_id", "customer_id", "transaction_type",
+    "amount", "transaction_timestamp", "status",
 )
 
 
@@ -30,23 +28,23 @@ def parse_args():
     parser.add_argument("--customers", type=int, default=100_000)
     parser.add_argument("--transactions", type=int, default=10_000_000)
     parser.add_argument(
-        "--output-dir",
-        type=Path,
+        "--output-dir", type=Path,
         default=PROJECT_ROOT / "data" / "scale" / "raw",
-        help="Output directory (separate from the baseline data/raw directory).",
+        help="Output directory, separate from the baseline data/raw directory.",
     )
-    parser.add_argument("--seed", type=int, default=42)\n    parser.add_argument("--overwrite", action="store_true", help="Allow replacing existing generated CSV files.")
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--overwrite", action="store_true",
+        help="Allow replacing customers.csv and transactions.csv in this scale directory.",
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    if args.customers < 1:
-        raise SystemExit("--customers must be at least 1")
-    if args.transactions < 1:
-        raise SystemExit("--transactions must be at least 1")
+    if args.customers < 1 or args.transactions < 1:
+        raise SystemExit("--customers and --transactions must both be at least 1")
 
-    rng = random.Random(args.seed)
     output_dir = args.output_dir
     if not output_dir.is_absolute():
         output_dir = (Path.cwd() / output_dir).resolve()
@@ -54,10 +52,18 @@ def main():
 
     customers_path = output_dir / "customers.csv"
     transactions_path = output_dir / "transactions.csv"
-    start = time.perf_counter()
+    existing = [path for path in (customers_path, transactions_path) if path.exists()]
+    if existing and not args.overwrite:
+        raise SystemExit(
+            "Refusing to overwrite existing scale input files: "
+            + ", ".join(str(path) for path in existing)
+            + ". Choose another --output-dir or pass --overwrite."
+        )
 
-    # Keep only customer IDs in memory; transaction rows are streamed directly to disk.
+    rng = random.Random(args.seed)
+    start = time.perf_counter()
     customer_ids = [f"C{i:07d}" for i in range(1, args.customers + 1)]
+
     registration_start = datetime(2022, 1, 1)
     with customers_path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=CUSTOMER_FIELDS)
@@ -99,7 +105,7 @@ def main():
     print(f"Transactions file: {transactions_path} ({transactions_path.stat().st_size:,} bytes)")
     print(f"Seed: {args.seed}")
     print(f"Generation time: {elapsed:.2f} seconds")
-    print("Note: this 10M scale dataset is clean and separate from data/raw. The baseline generator remains small and includes controlled test defects.")
+    print("This dataset is clean and isolated from the small baseline mock data.")
 
 
 if __name__ == "__main__":
