@@ -47,15 +47,15 @@ flowchart TB
 
 ## Runtime orchestration
 
-The Airflow DAG is defined in `orchestration/airflow/dags/banking_data_platform_pipeline.py`. It runs the existing project pipeline with Spark and S3 ingestion enabled:
+The Airflow DAG is defined in `orchestration/airflow/dags/banking_data_platform_pipeline.py` and uses three explicit tasks:
 
-```text
-src/demo.py --include-spark --upload-s3
-```
+1. `preflight_pipeline_inputs` checks the baseline input files, stage scripts, configuration files, and required Python modules. If optional S3 upload is requested, it also checks the S3 ingestion script, boto3, the bucket setting, and worker credentials.
+2. `run_banking_pipeline` removes any stale report and invokes the existing `src/demo.py` pipeline with Spark enabled. S3 upload is controlled by the DAG's `upload_s3` boolean parameter, defaulting to `false`.
+3. `validate_pipeline_evidence` validates the new report's run ID, stage outcomes, counters, cross-engine reconciliation status, and required output artifacts. When S3 is enabled, it validates only the fresh audit records appended during that run and confirms all raw input files were verified.
 
-The DAG uses one Python task to launch the pipeline process. It removes any previous run report before execution, checks the subprocess exit code, requires a newly generated report, parses the JSON, and raises an Airflow exception unless the report status is `PASS`. This prevents a stale successful report from masking a failed process.
+The internal ETL stage sequence, retry policy, lineage recording, and report generation remain owned by `src/demo.py`; Airflow provides the outer orchestration and an independent evidence gate. The DAG limits active runs to one because executions share local output paths and lineage storage. The demo runner owns bounded stage-level retries, so Airflow does not automatically replay the entire pipeline after a partial execution.
 
-The custom image in `orchestration/airflow/Dockerfile` includes the project source, Java 17, project Python dependencies, and PySpark 3.5.7. Docker Compose runs the Airflow services and preserves the project `data/` directory in a named volume.
+The custom image in `orchestration/airflow/Dockerfile` includes the project source, Java 17, project Python dependencies, and PySpark 3.5.7. Docker Compose bind-mounts the repository's `data/` directory into the worker (default path `../../data` from `orchestration/airflow`). This keeps tracked raw CSV inputs visible instead of masking them with a newly created empty named volume, and makes generated outputs visible in the checkout. S3 configuration is supplied through worker environment variables, not a hard-coded bucket name.
 
 ## Data and cloud boundaries
 

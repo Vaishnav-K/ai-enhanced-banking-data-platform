@@ -57,12 +57,6 @@ x-airflow-common:
     - ${ENV_FILE_PATH:-.env}
   environment:
     &airflow-common-env
-    AWS_SHARED_CREDENTIALS_FILE: /home/airflow/.aws/credentials
-    AWS_CONFIG_FILE: /home/airflow/.aws/config
-    AWS_DEFAULT_REGION: ap-southeast-2
-    AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-    AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-    BANKING_S3_BUCKET: banking-platform-vk-457106204399-ap-southeast-2-an
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
     AIRFLOW__API__SECRET_KEY: ${AIRFLOW__API__SECRET_KEY}
     AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
@@ -130,7 +124,7 @@ services:
     <<: *airflow-common
     command: api-server
     ports:
-      - "8080:8080"
+      - "${AIRFLOW_API_PORT:-8080}:8080"
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/version"]
       interval: 30s
@@ -187,6 +181,11 @@ services:
       start_period: 30s
     environment:
       <<: *airflow-common-env
+      # Optional AWS credentials are scoped to the worker, not every Airflow service.
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-ap-southeast-2}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      BANKING_S3_BUCKET: ${BANKING_S3_BUCKET:-}
       # Required to handle warm shutdown of the celery workers properly
       # See https://airflow.apache.org/docs/docker-stack/entrypoint.html#signal-propagation
       DUMB_INIT_SETSID: "0"
@@ -200,10 +199,10 @@ services:
     volumes:
       # Worker overrides the shared volume list, so repeat the shared mounts here.
       - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
-      - C:/Users/Vaishnav/.aws:/home/airflow/.aws:ro
       - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
       - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
-      - banking-data-volume:/opt/banking-platform/data
+      # Bind the checked-out project data directory so the tracked raw CSVs are not hidden by an empty named volume.
+      - ${BANKING_DATA_DIR:-../../data}:/opt/banking-platform/data
 
   airflow-triggerer:
     <<: *airflow-common
@@ -351,4 +350,3 @@ services:
 
 volumes:
   postgres-db-volume:
-  banking-data-volume:
