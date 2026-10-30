@@ -129,7 +129,15 @@ def run_spark(input_dir=RAW_DIR, output_root=OUTPUT_ROOT, master="local[2]",
         )
         cached.append(transactions)
         deduplicated_count = transactions.count()
-        duplicate_count = raw_count - deduplicated_count
+        duplicate_count = transactions_typed.groupBy("transaction_id").count().agg(
+            F.coalesce(
+                F.sum(
+                    F.when(F.col("count") > 1, F.col("count") - 1)
+                    .otherwise(F.lit(0))
+                ),
+                F.lit(0),
+            ).alias("duplicate_rows")
+        ).first()["duplicate_rows"]
 
         customer_keys = (
             customers.select("customer_id").distinct()
