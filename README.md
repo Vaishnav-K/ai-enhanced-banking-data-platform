@@ -202,7 +202,7 @@ docker compose config --quiet
 docker compose up --build -d
 ```
 
-Open `http://localhost:$env:AIRFLOW_API_PORT` (default `http://localhost:8080`), sign in with the Airflow account configured for your local environment, unpause `banking_data_platform_pipeline` if needed, and trigger a manual run. The `upload_s3` trigger parameter defaults to `false`; leave it disabled for a local-only run.
+Open `http://localhost:8080` by default, or use the host port configured in `AIRFLOW_API_PORT`. Sign in with the Airflow account configured for your local environment, unpause `banking_data_platform_pipeline` if needed, and trigger a manual run. The `upload_s3` trigger parameter defaults to `false`; leave it disabled for a local-only run.
 
 To opt into S3, set `BANKING_S3_BUCKET`, `AWS_ACCESS_KEY_ID`, and `AWS_SECRET_ACCESS_KEY` in the PowerShell environment before starting Compose. The credentials are passed only to the worker container. For example, load the default profile without displaying its values:
 
