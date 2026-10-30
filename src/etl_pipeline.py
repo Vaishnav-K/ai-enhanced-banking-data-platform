@@ -116,8 +116,7 @@ def main():
     con.execute("""
         CREATE OR REPLACE TABLE unknown_customer_transactions AS
         SELECT t.*,
-               CONCAT_WS('; ', t.rejection_reason, 'UNKNOWN_CUSTOMER_ID')
-                   AS full_rejection_reason
+               'UNKNOWN_CUSTOMER_ID' AS full_rejection_reason
         FROM candidate_transactions t
         WHERE NOT EXISTS (
             SELECT 1 FROM customers c
