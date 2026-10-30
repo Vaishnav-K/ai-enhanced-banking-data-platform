@@ -138,12 +138,19 @@ def main():
                 F.to_timestamp("transaction_timestamp", "yyyy-MM-dd HH:mm:ss").alias("transaction_timestamp"),
                 F.upper(F.trim("status")).alias("status"),
             )
+            .withColumn("_source_row_id", F.monotonically_increasing_id())
         )
 
         customer_count = customers.count()
         raw_count = transactions_raw.count()
         dedupe_window = (
-            Window.partitionBy("transaction_id")
+            Window.partitionBy(
+                F.col("transaction_id"),
+                F.when(
+                    F.col("transaction_id").isNull(),
+                    F.col("_source_row_id"),
+                ).otherwise(F.lit(0)),
+            )
             .orderBy(*[
                 F.col(column).asc_nulls_first()
                 for column in DEDUPLICATION_COLUMNS
@@ -154,7 +161,7 @@ def main():
         )
         transactions = (
             ranked_transactions.filter(F.col("_dedupe_rank") == 1)
-            .drop("_dedupe_rank")
+            .drop("_dedupe_rank", "_source_row_id")
         )
         deduplicated_count = transactions.count()
         duplicate_count = ranked_transactions.filter(

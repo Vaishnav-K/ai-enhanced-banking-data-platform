@@ -108,13 +108,19 @@ def run_spark(input_dir=RAW_DIR, output_root=OUTPUT_ROOT, master="local[2]",
                 "transaction_timestamp", "yyyy-MM-dd HH:mm:ss"
             ).alias("transaction_timestamp"),
             F.upper(F.trim("status")).alias("status"),
-        )
+        ).withColumn("_source_row_id", F.monotonically_increasing_id())
 
         raw_count = transactions_typed.count()
         customer_count = customers.count()
 
         dedupe_window = (
-            Window.partitionBy("transaction_id")
+            Window.partitionBy(
+                F.col("transaction_id"),
+                F.when(
+                    F.col("transaction_id").isNull(),
+                    F.col("_source_row_id"),
+                ).otherwise(F.lit(0)),
+            )
             .orderBy(*[
                 F.col(column).asc_nulls_first()
                 for column in DEDUPLICATION_COLUMNS
@@ -124,12 +130,14 @@ def run_spark(input_dir=RAW_DIR, output_root=OUTPUT_ROOT, master="local[2]",
             transactions_typed
             .withColumn("_dedupe_rank", F.row_number().over(dedupe_window))
             .filter(F.col("_dedupe_rank") == 1)
-            .drop("_dedupe_rank")
+            .drop("_dedupe_rank", "_source_row_id")
             .cache()
         )
         cached.append(transactions)
         deduplicated_count = transactions.count()
-        duplicate_count = transactions_typed.groupBy("transaction_id").count().agg(
+        duplicate_count = transactions_typed.filter(
+            F.col("transaction_id").isNotNull()
+        ).groupBy("transaction_id").count().agg(
             F.coalesce(
                 F.sum(
                     F.when(F.col("count") > 1, F.col("count") - 1)

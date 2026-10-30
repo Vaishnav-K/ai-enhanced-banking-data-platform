@@ -45,6 +45,7 @@ class CrossEngineFixture:
                 ["T001", "C001", " credit ", "10.00", "2026-10-01 10:00:00", " success "],
                 ["T002", "C001", "WIRE", "25.00", "2026-10-01 10:05:00", "SUCCESS"],
                 ["", "C001", "CREDIT", "not-money", "not-a-timestamp", "BAD"],
+                ["", "C002", "DEBIT", "5.00", "2026-10-01 10:07:00", "SUCCESS"],
                 ["T004", "C999", "TRANSFER", "50.00", "2026-10-01 10:10:00", "SUCCESS"],
                 ["T005", "C001", "CREDIT", "20.00", "2026-10-01 10:15:00", "SUCCESS"],
                 ["T005", "C001", "CREDIT", "10.00", "2026-10-01 10:15:00", "SUCCESS"],
@@ -64,11 +65,11 @@ class TestDuckDbRuleCoverage(unittest.TestCase):
 
             summary = run_etl(input_dir, processed_dir, quarantine_dir)
 
-            self.assertEqual(summary["raw_transactions"], 8)
-            self.assertEqual(summary["deduplicated_transactions"], 7)
+            self.assertEqual(summary["raw_transactions"], 9)
+            self.assertEqual(summary["deduplicated_transactions"], 8)
             self.assertEqual(summary["duplicate_rows_removed"], 1)
             self.assertEqual(summary["valid_transactions"], 2)
-            self.assertEqual(summary["quarantined_transactions"], 5)
+            self.assertEqual(summary["quarantined_transactions"], 6)
             self.assertTrue(summary["reconciliation_passed"])
 
             import duckdb
@@ -77,16 +78,21 @@ class TestDuckDbRuleCoverage(unittest.TestCase):
                     "SELECT amount FROM read_parquet(?) WHERE transaction_id='T005'",
                     [str(processed_dir / "transactions.parquet")],
                 ).fetchone()[0]
-                missing_id_reason = con.execute(
-                    "SELECT rejection_reason FROM read_parquet(?) "
-                    "WHERE transaction_id IS NULL",
-                    [str(quarantine_dir / "transactions.parquet")],
-                ).fetchone()[0]
+                missing_id_reasons = [
+                    row[0] for row in con.execute(
+                        "SELECT rejection_reason FROM read_parquet(?) "
+                        "WHERE transaction_id IS NULL ORDER BY rejection_reason",
+                        [str(quarantine_dir / "transactions.parquet")],
+                    ).fetchall()
+                ]
 
             self.assertEqual(str(chosen_amount), "10.00")
             self.assertEqual(
-                missing_id_reason,
-                "MISSING_TRANSACTION_ID; INVALID_AMOUNT; INVALID_TIMESTAMP; INVALID_STATUS",
+                missing_id_reasons,
+                [
+                    "MISSING_TRANSACTION_ID",
+                    "MISSING_TRANSACTION_ID; INVALID_AMOUNT; INVALID_TIMESTAMP; INVALID_STATUS",
+                ],
             )
 
 
@@ -119,6 +125,50 @@ class TestSparkDuckDbParity(unittest.TestCase):
             self.assertTrue(duck_summary["reconciliation_passed"])
             self.assertTrue(spark_summary["reconciliation_passed"])
             self.assertEqual(report["status"], "PASS", report["details"])
+
+
+
+@unittest.skipUnless(HAS_PYSPARK, "PySpark is not installed in this environment.")
+class TestScaleSparkMissingIdHandling(unittest.TestCase):
+    def test_scale_benchmark_preserves_multiple_missing_transaction_ids(self):
+        from unittest.mock import patch
+        from scale_spark_benchmark import main as run_scale_benchmark
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            input_dir = CrossEngineFixture.create(root)
+            output_dir = root / "scale_output"
+            report_path = root / "scale_report.json"
+            argv = [
+                "scale_spark_benchmark.py",
+                "--input-dir", str(input_dir),
+                "--output-dir", str(output_dir),
+                "--report", str(report_path),
+                "--master", "local[2]",
+                "--shuffle-partitions", "2",
+            ]
+
+            with patch("sys.argv", argv):
+                run_scale_benchmark()
+
+            import json
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            counts = report["counts"]
+            self.assertEqual(report["status"], "PASS")
+            self.assertEqual(counts["raw_transactions"], 9)
+            self.assertEqual(counts["deduplicated_transactions"], 8)
+            self.assertEqual(counts["duplicate_transaction_rows_removed"], 1)
+            self.assertEqual(counts["valid_transactions"], 2)
+            self.assertEqual(counts["quarantined_transactions"], 6)
+
+            with (output_dir / "quarantined_transactions.csv").open(
+                "r", newline="", encoding="utf-8"
+            ) as handle:
+                missing_ids = [
+                    row for row in csv.DictReader(handle)
+                    if not row["transaction_id"]
+                ]
+            self.assertEqual(len(missing_ids), 2)
 
 
 if __name__ == "__main__":

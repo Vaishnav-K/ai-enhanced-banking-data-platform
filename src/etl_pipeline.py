@@ -57,7 +57,8 @@ def run_etl(input_dir=RAW_DIR, processed_dir=PROCESSED_DIR,
                 UPPER(TRIM(transaction_type)) AS transaction_type,
                 TRY_CAST(amount AS DECIMAL(18, 2)) AS amount,
                 TRY_CAST(transaction_timestamp AS TIMESTAMP) AS transaction_timestamp,
-                UPPER(TRIM(status)) AS status
+                UPPER(TRIM(status)) AS status,
+                ROW_NUMBER() OVER () AS _source_row_id
             FROM read_csv({sql_literal(transactions_path.as_posix())},
                           header=true, all_varchar=true)
         """)
@@ -74,11 +75,13 @@ def run_etl(input_dir=RAW_DIR, processed_dir=PROCESSED_DIR,
         )
         con.execute(f"""
             CREATE OR REPLACE TABLE transactions AS
-            SELECT * EXCLUDE (_dedupe_rank)
+            SELECT * EXCLUDE (_dedupe_rank, _source_row_id)
             FROM (
                 SELECT *,
                        ROW_NUMBER() OVER (
-                           PARTITION BY transaction_id
+                           PARTITION BY transaction_id,
+                               CASE WHEN transaction_id IS NULL
+                                    THEN _source_row_id ELSE 0 END
                            ORDER BY {order_columns}
                        ) AS _dedupe_rank
                 FROM raw_transactions
@@ -93,6 +96,7 @@ def run_etl(input_dir=RAW_DIR, processed_dir=PROCESSED_DIR,
             FROM (
                 SELECT COUNT(*) AS group_rows
                 FROM raw_transactions
+                WHERE transaction_id IS NOT NULL
                 GROUP BY transaction_id
             )
         """).fetchone()[0]
