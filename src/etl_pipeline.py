@@ -2,6 +2,8 @@
 from pathlib import Path
 import duckdb
 
+from transaction_rules import TRANSACTION_TYPES, TRANSACTION_STATUSES
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = PROJECT_ROOT / "data" / "raw"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
@@ -43,15 +45,22 @@ def main():
         "SELECT COUNT(*) FROM raw_transactions"
     ).fetchone()[0]
 
-    # Keep the first occurrence of each transaction ID.
-    con.execute("""
+    # Deterministic survivor selection, mirrored by the Spark implementation.
+    order_columns = ", ".join(
+        f"{column} ASC NULLS FIRST"
+        for column in (
+            "transaction_id", "customer_id", "transaction_type",
+            "amount", "transaction_timestamp", "status",
+        )
+    )
+    con.execute(f"""
         CREATE OR REPLACE TABLE transactions AS
         SELECT * EXCLUDE (row_num)
         FROM (
             SELECT *,
                    ROW_NUMBER() OVER (
                        PARTITION BY transaction_id
-                       ORDER BY transaction_id
+                       ORDER BY {order_columns}
                    ) AS row_num
             FROM raw_transactions
         )
@@ -62,27 +71,34 @@ def main():
         "SELECT COUNT(*) FROM transactions"
     ).fetchone()[0]
 
-    # Apply transaction-level quality rules.
+    # Normalize categorical fields and apply the shared domain rules.
+    allowed_types = ", ".join("'" + value + "'" for value in TRANSACTION_TYPES)
+    allowed_statuses = ", ".join("'" + value + "'" for value in TRANSACTION_STATUSES)
     con.execute("""
+        CREATE OR REPLACE TABLE normalized_transactions AS
+        SELECT
+            NULLIF(TRIM(transaction_id), '') AS transaction_id,
+            NULLIF(TRIM(customer_id), '') AS customer_id,
+            UPPER(TRIM(transaction_type)) AS transaction_type,
+            amount,
+            transaction_timestamp,
+            UPPER(TRIM(status)) AS status
+        FROM transactions
+    """)
+    con.execute(f"""
         CREATE OR REPLACE TABLE classified AS
         SELECT *,
             CONCAT_WS('; ',
-                CASE WHEN transaction_id IS NULL OR TRIM(transaction_id) = ''
-                     THEN 'MISSING_TRANSACTION_ID' END,
-                CASE WHEN customer_id IS NULL OR TRIM(customer_id) = ''
-                     THEN 'MISSING_CUSTOMER_ID' END,
-                CASE WHEN transaction_type IS NULL OR transaction_type NOT IN
-                     ('CREDIT', 'DEBIT', 'TRANSFER', 'PAYMENT')
+                CASE WHEN transaction_id IS NULL THEN 'MISSING_TRANSACTION_ID' END,
+                CASE WHEN customer_id IS NULL THEN 'MISSING_CUSTOMER_ID' END,
+                CASE WHEN transaction_type IS NULL OR transaction_type NOT IN ({allowed_types})
                      THEN 'INVALID_TRANSACTION_TYPE' END,
-                CASE WHEN amount IS NULL OR amount <= 0
-                     THEN 'INVALID_AMOUNT' END,
-                CASE WHEN transaction_timestamp IS NULL
-                     THEN 'INVALID_TIMESTAMP' END,
-                CASE WHEN status IS NULL OR status NOT IN
-                     ('SUCCESS', 'FAILED', 'PENDING')
+                CASE WHEN amount IS NULL OR amount <= 0 THEN 'INVALID_AMOUNT' END,
+                CASE WHEN transaction_timestamp IS NULL THEN 'INVALID_TIMESTAMP' END,
+                CASE WHEN status IS NULL OR status NOT IN ({allowed_statuses})
                      THEN 'INVALID_STATUS' END
             ) AS rejection_reason
-        FROM transactions
+        FROM normalized_transactions
     """)
 
     con.execute("""
@@ -99,12 +115,13 @@ def main():
 
     con.execute("""
         CREATE OR REPLACE TABLE unknown_customer_transactions AS
-        SELECT t.* EXCLUDE (rejection_reason),
-       'UNKNOWN_CUSTOMER_ID' AS rejection_reason
+        SELECT t.*,
+               CONCAT_WS('; ', t.rejection_reason, 'UNKNOWN_CUSTOMER_ID')
+                   AS full_rejection_reason
         FROM candidate_transactions t
         WHERE NOT EXISTS (
             SELECT 1 FROM customers c
-            WHERE c.customer_id = t.customer_id
+            WHERE TRIM(c.customer_id) = t.customer_id
         )
     """)
 
@@ -114,7 +131,7 @@ def main():
         FROM candidate_transactions t
         WHERE EXISTS (
             SELECT 1 FROM customers c
-            WHERE c.customer_id = t.customer_id
+            WHERE TRIM(c.customer_id) = t.customer_id
         )
     """)
 
@@ -139,7 +156,7 @@ def main():
             amount,
             transaction_timestamp,
             status,
-            rejection_reason
+            full_rejection_reason AS rejection_reason
         FROM unknown_customer_transactions
     """)
 
@@ -183,10 +200,15 @@ def main():
     print(f"Invalid transactions:         {invalid_count:,}")
     print(f"Unknown-customer records:     {unknown_count:,}")
     print(f"Total quarantined records:    {quarantine_count:,}")
-    print(
-        "Reconciliation:              "
-        f"{deduplicated_count == valid_count + quarantine_count}"
+    duplicate_count = raw_count - deduplicated_count
+    reconciliation_passed = (
+        raw_count == deduplicated_count + duplicate_count
+        and deduplicated_count == valid_count + quarantine_count
     )
+    print(f"Duplicate rows removed:      {duplicate_count:,}")
+    print(f"Reconciliation:              {reconciliation_passed}")
+    if not reconciliation_passed:
+        raise RuntimeError("DuckDB ETL reconciliation failed.")
     print(f"Processed output:             {PROCESSED_DIR}")
     print(f"Quarantine output:             {QUARANTINE_DIR}")
 
