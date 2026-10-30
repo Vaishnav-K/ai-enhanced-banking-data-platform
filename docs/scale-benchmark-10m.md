@@ -1,6 +1,6 @@
 # Scale Benchmark: 10 Million Transactions
 
-This is an optional, local synthetic-data experiment that preserves the default 500-customer / 10,000-transaction demo. Scale inputs and outputs live under `data/scale/`; do not commit the generated CSV or Parquet data.
+This is an optional, local synthetic-data experiment that preserves the default 500-customer / 10,000-transaction demo. Scale inputs and outputs live under `data/scale/`; do not commit the generated CSV or Parquet data. The scale generator now defaults to **100,000 customers and 10,000,000 transactions**; the explicit flags in the commands below make the intended dataset size and output path visible and reproducible.
 
 ## 1. Update the existing checkout
 
