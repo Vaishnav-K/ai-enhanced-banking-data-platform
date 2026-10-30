@@ -28,14 +28,14 @@ TRANSACTION_FIELDS = (
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--customers", type=int, default=100_000)
-    parser.add_argument("--transactions", type=int, default=1_000_000)
+    parser.add_argument("--transactions", type=int, default=10_000_000)
     parser.add_argument(
         "--output-dir",
         type=Path,
         default=PROJECT_ROOT / "data" / "scale" / "raw",
         help="Output directory (separate from the baseline data/raw directory).",
     )
-    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--seed", type=int, default=42)\n    parser.add_argument("--overwrite", action="store_true", help="Allow replacing existing generated CSV files.")
     return parser.parse_args()
 
 
@@ -99,7 +99,7 @@ def main():
     print(f"Transactions file: {transactions_path} ({transactions_path.stat().st_size:,} bytes)")
     print(f"Seed: {args.seed}")
     print(f"Generation time: {elapsed:.2f} seconds")
-    print("Note: this scale dataset is clean; baseline data generation still includes test defects.")
+    print("Note: this 10M scale dataset is clean and separate from data/raw. The baseline generator remains small and includes controlled test defects.")
 
 
 if __name__ == "__main__":
