@@ -42,8 +42,8 @@ jobs:
       - name: Reconcile Spark against DuckDB
         run: python src/compare_engines.py
 
-      - name: Validate Spark output files
-        run: python -m unittest discover -s tests -p "test_spark_output_contract.py" -v
+      - name: Run complete automated regression suite
+        run: python -m unittest discover -s tests -v
 
       - name: Upload Spark outputs
         if: always()
