@@ -9,7 +9,7 @@ from pathlib import Path
 
 import duckdb
 
-from transaction_rules import (\n    TRANSACTION_TYPES, TRANSACTION_STATUSES, DEDUPLICATION_COLUMNS,\n)
+from transaction_rules import TRANSACTION_TYPES, TRANSACTION_STATUSES, DEDUPLICATION_COLUMNS
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = PROJECT_ROOT / "data" / "raw"
