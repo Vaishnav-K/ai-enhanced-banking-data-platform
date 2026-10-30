@@ -50,7 +50,7 @@ The task returns a compact validation summary to Airflow XCom. A pipeline report
 ## Triggering the DAG
 
 1. Start Docker Compose from `orchestration/airflow`. The worker bind-mounts the project `data/` directory using `BANKING_DATA_DIR` (default `../../data` relative to this Compose folder), so the tracked raw CSV inputs remain visible inside the container and outputs remain in the local checkout.
-2. Open `http://localhost:8080`.
+2. Open `http://localhost:8080` by default. Set `AIRFLOW_API_PORT` before starting Compose to use a different host port when another Airflow stack is already running.
 3. Unpause `banking_data_platform_pipeline` if required.
 4. Trigger a manual run.
 5. Leave `upload_s3=false` for a local-only run, or set it to `true` for an authenticated raw-data upload.

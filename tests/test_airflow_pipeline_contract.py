@@ -239,6 +239,11 @@ class TestAirflowDagSource(unittest.TestCase):
         )
         self.assertNotIn("banking-data-volume:/opt/banking-platform/data", compose)
 
+    def test_api_port_can_be_overridden_for_parallel_local_stack(self):
+        compose_path = ROOT / "orchestration/airflow/docker-compose.yaml"
+        compose = compose_path.read_text(encoding="utf-8")
+        self.assertIn("${AIRFLOW_API_PORT:-8080}:8080", compose)
+
     def test_dag_parses_and_declares_three_tasks(self):
         path = ROOT / "orchestration/airflow/dags/banking_data_platform_pipeline.py"
         tree = ast.parse(path.read_text(encoding="utf-8-sig"))
