@@ -17,7 +17,7 @@ Built with **Python, DuckDB, SQL, Parquet, PySpark, Apache Airflow, Docker, and 
 | Independent processing paths | DuckDB processing compared with PySpark output | Cross-engine reconciliation report |
 | Operational traceability | Run IDs, stage attempts, bounded retries, artifact observations and lineage | `data/processed/pipeline_run_report.json` and lineage reports |
 | Quality and recovery intelligence | Threshold-based anomaly screening, quality investigation, read-only recovery assessments | Investigation and recovery reports |
-| Orchestration and cloud | Airflow DAG in Docker Compose; checksum-aware, audited S3 raw-file ingestion | Airflow task logs and S3 ingestion audit |
+| Orchestration and cloud | Airflow preflight → pipeline execution → evidence validation; opt-in checksum-aware S3 ingestion | Airflow task logs, run report, validated artifacts, and S3 audit |
 | Engineering controls | Unit tests and separate CI for the core pipeline and Spark | GitHub Actions badges above |
 
 ### Demonstrated sample run
@@ -106,7 +106,7 @@ flowchart TB
     A -. "Optional authenticated upload" .-> M
 ```
 
-The Airflow DAG runs the existing pipeline with Spark enabled and requests raw-file S3 ingestion. The pipeline writes a run report; Airflow validates the report status and fails the task if the process fails, the report is missing, or the reported status is not `PASS`.
+The Airflow DAG checks dependencies and inputs, runs the existing pipeline with Spark enabled, and independently validates the new run report, cross-engine reconciliation result, and required output artifacts. S3 raw-file ingestion is controlled by the DAG's `upload_s3` parameter and is disabled by default.
 
 ## Demonstrated Results
 
@@ -139,16 +139,16 @@ The Airflow DAG runs the existing pipeline with Spark enabled and requests raw-f
 - Dedicated IAM user intended for restricted upload permissions.
 - Raw synthetic CSVs stored under `banking-data/raw/`.
 - Upload uses SHA-256 checksums, skips unchanged files, uploads changed or missing files, verifies uploads, and records results.
-- The local pipeline can run without S3; the Airflow demo invokes the pipeline with `--upload-s3`.
+- The local pipeline and default Airflow run do not require S3; the Airflow DAG adds `--upload-s3` only when its `upload_s3` parameter is enabled.
 
 ### Airflow + Docker + Spark execution
-- Apache Airflow 3.1.7 with Docker Compose and a custom image.
-- The image includes the banking project source, Java 17, and PySpark 3.5.7.
+- Apache Airflow 3.1.7 with Docker Compose and a custom image containing the project source, Java 17, and PySpark 3.5.7.
 - DAG: `banking_data_platform_pipeline`.
-- Task: `run_and_validate_pipeline`.
-- DAG invokes `src/demo.py --include-spark --upload-s3`.
-- Airflow checks the process exit code and the generated `data/processed/pipeline_run_report.json`.
-- A successful run was recorded with overall status `PASS`; the `S3 Raw Data Ingestion` stage also reported `PASS` with exit code `0`. Treat these as development-demo evidence, not a production SLA.
+- Task chain: `preflight_pipeline_inputs` → `run_banking_pipeline` → `validate_pipeline_evidence`.
+- Preflight checks required synthetic inputs, project scripts, configuration files, and runtime dependencies before execution.
+- The runner invokes `src/demo.py --include-spark`; S3 upload is opt-in through the DAG's `upload_s3` parameter, which defaults to `false`.
+- Post-run validation checks the run ID, stage statuses and counters, cross-engine reconciliation report, and required output artifacts. When S3 is enabled, it also validates fresh audit records for the raw input files.
+- The DAG allows one active run because executions share local output and lineage stores. The existing demo runner owns bounded stage-level retries; Airflow does not automatically replay the entire pipeline after a partial run.
 
 ## Run Locally
 
@@ -191,14 +191,22 @@ $env:BANKING_S3_BUCKET = "<your-bucket-name>"
 
 Prerequisites:
 - Docker Desktop running.
-- AWS CLI configured locally with a default credentials profile authorized for the target bucket.
 - The repository cloned locally.
+- No AWS credentials are needed for the default local Airflow run.
 
-The Compose configuration expects `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in the PowerShell environment for the worker. Load them from the local AWS credentials file without printing them:
+Start Airflow from PowerShell:
 
 ```powershell
 Set-Location .\orchestration\airflow
+docker compose config --quiet
+docker compose up --build -d
+```
 
+Open `http://localhost:8080`, sign in with the Airflow account configured for your local environment, unpause `banking_data_platform_pipeline` if needed, and trigger a manual run. The `upload_s3` trigger parameter defaults to `false`; leave it disabled for a local-only run.
+
+To opt into S3, set `BANKING_S3_BUCKET`, `AWS_ACCESS_KEY_ID`, and `AWS_SECRET_ACCESS_KEY` in the PowerShell environment before starting Compose. The credentials are passed only to the worker container. For example, load the default profile without displaying its values:
+
+```powershell
 $awsCreds = Get-Content "$env:USERPROFILE\.aws\credentials" -Raw
 $section = [regex]::Match($awsCreds, '(?ms)^\[default\]\s*(.*?)(?=^\[|\z)').Groups[1].Value
 $accessKey = [regex]::Match($section, '(?m)^\s*aws_access_key_id\s*=\s*(\S+)').Groups[1].Value
@@ -208,14 +216,14 @@ if (-not $accessKey -or -not $secretKey) { throw "Default AWS credentials not fo
 $env:AWS_ACCESS_KEY_ID = $accessKey
 $env:AWS_SECRET_ACCESS_KEY = $secretKey
 $env:AWS_DEFAULT_REGION = "ap-southeast-2"
-
-docker compose config --quiet
-docker compose up --build -d
+$env:BANKING_S3_BUCKET = "<your-bucket-name>"
 ```
 
-Open `http://localhost:8080`, sign in with the Airflow account configured for your local environment, unpause `banking_data_platform_pipeline` if needed, and trigger a manual run. Inspect the `run_and_validate_pipeline` task logs. The task should only pass when the pipeline process exits successfully and its report status is `PASS`.
+Then start/rebuild Compose and set `upload_s3=true` when triggering the DAG. Preflight requires the bucket setting, worker credentials, and S3 dependency. Final evidence validation checks that this run appended verified audit records for all three raw CSV inputs.
 
-Do not commit `.env`, AWS credentials, or other secrets. Keep the credentials in the local environment and rotate them if exposed.
+Inspect the three task logs: `preflight_pipeline_inputs`, `run_banking_pipeline`, and `validate_pipeline_evidence`. The DAG succeeds only when the pipeline and its evidence checks pass.
+
+Do not commit `.env`, AWS credentials, or other secrets. Keep keys in the local environment and rotate them if exposed.
 
 To stop the services without deleting persistent volumes:
 
@@ -254,10 +262,12 @@ S3 tests use mocked AWS responses and do not upload real objects.
 - **Anomaly screening:** the current implementation uses configured thresholds and deterministic rules; it is not a trained fraud-detection model.
 - **Investigation and recovery:** findings and recovery suggestions are evidence-driven and read-only. They do not automatically restart jobs or remediate production systems.
 - **AI boundary:** this version does not require an LLM API or include a connected generative-AI agent. The current strengths are data engineering, diagnostics, and decision support; a model-backed capability would be a separately scoped extension.
-- **Cloud boundary:** local tests and the normal local demo do not require AWS. The optional S3 upload and Airflow path need credentials for a bucket you control.
+- **Cloud boundary:** local tests and the default Airflow run do not require AWS. Only the opt-in S3 upload needs a bucket and worker credentials.
 - **Performance claims:** sample row counts are measured from the project's generated data; they are not evidence of production-scale throughput or an SLA.
 
 ## Portfolio Documentation
+
+- [Airflow orchestration runbook](docs/airflow-orchestration.md)
 
 - [Architecture and design principles](docs/architecture.md)
 - [End-to-end demo walkthrough](docs/demo-walkthrough.md)
