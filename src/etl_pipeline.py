@@ -91,7 +91,14 @@ def run_etl(input_dir=RAW_DIR, processed_dir=PROCESSED_DIR,
         deduplicated_count = con.execute(
             "SELECT COUNT(*) FROM transactions"
         ).fetchone()[0]
-        duplicate_count = raw_count - deduplicated_count
+        duplicate_count = con.execute("""
+            SELECT COALESCE(SUM(group_rows - 1), 0)
+            FROM (
+                SELECT COUNT(*) AS group_rows
+                FROM raw_transactions
+                GROUP BY transaction_id
+            )
+        """).fetchone()[0]
 
         allowed_types = ", ".join(sql_literal(v) for v in TRANSACTION_TYPES)
         allowed_statuses = ", ".join(sql_literal(v) for v in TRANSACTION_STATUSES)
@@ -210,7 +217,7 @@ def run_etl(input_dir=RAW_DIR, processed_dir=PROCESSED_DIR,
 
     print("\n===== BANKING DATA PLATFORM: DUCKDB ETL SUMMARY =====")
     for key, value in summary.items():
-        print(f"{key.replace('_', ' ').title():35} {value:,}" if isinstance(value, int) else
+        print(f"{key.replace('_', ' ').title():35} {value:,}" if type(value) is int else
               f"{key.replace('_', ' ').title():35} {value}")
     print(f"Processed output: {processed_dir}")
     print(f"Quarantine output: {quarantine_dir}")
