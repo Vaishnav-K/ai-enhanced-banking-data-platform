@@ -131,7 +131,8 @@ def main():
             .select(
                 F.when(F.trim("transaction_id") == "", F.lit(None))
                  .otherwise(F.trim("transaction_id")).alias("transaction_id"),
-                F.trim("customer_id").alias("customer_id"),
+                F.when(F.trim("customer_id") == "", F.lit(None))
+                 .otherwise(F.trim("customer_id")).alias("customer_id"),
                 F.upper(F.trim("transaction_type")).alias("transaction_type"),
                 F.expr("try_cast(amount AS DECIMAL(18,2))").alias("amount"),
                 F.to_timestamp("transaction_timestamp", "yyyy-MM-dd HH:mm:ss").alias("transaction_timestamp"),
