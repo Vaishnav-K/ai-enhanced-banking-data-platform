@@ -9,7 +9,7 @@ from pathlib import Path
 
 import duckdb
 
-from transaction_rules import TRANSACTION_TYPES, TRANSACTION_STATUSES
+from transaction_rules import (\n    TRANSACTION_TYPES, TRANSACTION_STATUSES, DEDUPLICATION_COLUMNS,\n)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = PROJECT_ROOT / "data" / "raw"
@@ -70,10 +70,7 @@ def run_etl(input_dir=RAW_DIR, processed_dir=PROCESSED_DIR,
         # wins when the same transaction_id appears with conflicting values.
         order_columns = ", ".join(
             f"{column} ASC NULLS FIRST"
-            for column in (
-                "transaction_id", "customer_id", "transaction_type",
-                "amount", "transaction_timestamp", "status",
-            )
+            for column in DEDUPLICATION_COLUMNS
         )
         con.execute(f"""
             CREATE OR REPLACE TABLE transactions AS
