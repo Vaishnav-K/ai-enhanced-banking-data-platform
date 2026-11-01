@@ -21,6 +21,32 @@ from data_quality_scorecard import build_scorecard
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_OUTPUT = ROOT / "reports" / "platform_health_dashboard.html"
 
+# Historical run records may contain the project's former public display name.
+# Alias that exact label in the dashboard only; persisted run evidence is unchanged.
+LEGACY_PIPELINE_DISPLAY_NAME = "AI-Enhanced Banking Data Platform"
+CURRENT_PIPELINE_DISPLAY_NAME = "Enterprise Banking Data Platform"
+
+
+def _display_pipeline_name(value):
+    if str(value) == LEGACY_PIPELINE_DISPLAY_NAME:
+        return CURRENT_PIPELINE_DISPLAY_NAME
+    return str(value)
+
+
+def _normalise_display_evidence(value):
+    """Alias historical pipeline_name fields for presentation without mutating source evidence."""
+    if isinstance(value, dict):
+        result = {}
+        for key, item in value.items():
+            if key == "pipeline_name" and item == LEGACY_PIPELINE_DISPLAY_NAME:
+                result[key] = CURRENT_PIPELINE_DISPLAY_NAME
+            else:
+                result[key] = _normalise_display_evidence(item)
+        return result
+    if isinstance(value, list):
+        return [_normalise_display_evidence(item) for item in value]
+    return value
+
 
 def _render_pipeline_reliability_breakdown():
     """Render per-pipeline run counts without hiding historical failures."""
@@ -46,7 +72,7 @@ def _render_pipeline_reliability_breakdown():
 
     rows = []
     for name, metrics in report.get("pipeline_breakdown", {}).items():
-        escaped_name = html.escape(str(name))
+        escaped_name = html.escape(_display_pipeline_name(name))
         total = metrics.get("total", 0)
         success = metrics.get("success", 0)
         failed = metrics.get("failed", 0)
@@ -198,7 +224,9 @@ def render_dashboard(report):
     else:
         action_html = '<p>No prioritized actions were generated from the available evidence.</p>'
 
-    safe_json = json.dumps(report, indent=2, default=str).replace("</", "<\\/")
+    safe_json = json.dumps(
+        _normalise_display_evidence(report), indent=2, default=str
+    ).replace("</", "<\\/")
 
     script_html = r"""<script>
 "use strict";
@@ -243,7 +271,7 @@ document.addEventListener("DOMContentLoaded", () => {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Banking Data Platform | Health Dashboard</title>
+<title>Enterprise Banking Data Platform | Health Dashboard</title>
 <style>
 :root {{ color-scheme: dark; font-family: Inter, Segoe UI, Arial, sans-serif; }}
 * {{ box-sizing: border-box; }}
@@ -293,7 +321,7 @@ a:focus-visible, button:focus-visible {{ outline: 2px solid #86b7ff; outline-off
 </head>
 <body>
 <header>
-  <h1>Banking Data Platform</h1>
+  <h1>Enterprise Banking Data Platform</h1>
   <p class="muted">Pipeline observability · Data quality · Recovery intelligence</p>
   <span class="status">Platform status: {esc(report["status"])}</span>
 </header>
