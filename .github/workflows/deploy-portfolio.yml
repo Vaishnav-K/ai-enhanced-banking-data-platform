@@ -69,7 +69,7 @@ jobs:
           )
           benchmark_path = out / "scale-benchmark-metrics.json"
           benchmark_path.write_text(
-              json.dumps(benchmark, indent=2) + "\\n", encoding="utf-8"
+              json.dumps(benchmark, indent=2) + "\n", encoding="utf-8"
           )
           print(f"Published benchmark evidence: {benchmark_path}")
           PY
