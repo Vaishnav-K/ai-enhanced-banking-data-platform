@@ -1,4 +1,4 @@
-# Banking Data Platform — Architecture
+# Enterprise Banking Data Platform — Architecture
 
 ## End-to-end flow
 
