@@ -62,81 +62,90 @@ filterButtons.forEach((button) => {
 });
 
 
-/* Build-refreshed dataset metrics and interactive illustrative scale chart. */
+/* Evidence-led scale dashboard: benchmark headline + separately measured quick-start fixture. */
 (async function initializeScaleDashboard() {
-  const countNode = document.getElementById("metric-customers");
-  const txNode = document.getElementById("metric-transactions");
-  const footprintNode = document.getElementById("metric-footprint");
-  const updatedNode = document.getElementById("metric-updated");
-  const chart = document.getElementById("dataset-chart");
-  const formatCount = (n) => new Intl.NumberFormat("en-US").format(n);
-  const formatBytes = (n) => n >= 1e9 ? (n / 1e9).toFixed(2) + " GB" : n >= 1e6 ? (n / 1e6).toFixed(2) + " MB" : n >= 1e3 ? (n / 1e3).toFixed(1) + " KB" : n + " B";
-  const svgEl = (tag, attrs, text) => {
-    const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
-    Object.entries(attrs || {}).forEach(([k,v]) => el.setAttribute(k, String(v)));
-    if (text !== undefined) el.textContent = text;
-    return el;
+  const byId = (id) => document.getElementById(id);
+  const formatCount = (value) => new Intl.NumberFormat("en-US").format(value);
+  const formatBytes = (value) => value >= 1e9
+    ? (value / 1e9).toFixed(2) + " GB"
+    : value >= 1e6
+      ? (value / 1e6).toFixed(2) + " MB"
+      : value >= 1e3
+        ? (value / 1e3).toFixed(1) + " KB"
+        : value + " B";
+
+  const benchmarkFallback = {
+    run_started_at_utc: "2026-10-28T19:50:21.887746+00:00",
+    status: "PASS",
+    workload: {
+      customers: 100000,
+      raw_transactions: 10000000,
+      deduplicated_transactions: 10000000,
+      valid_transactions: 10000000,
+      quarantined_transactions: 0
+    },
+    reconciliation: { passed: true },
+    execution: {
+      spark_version: "3.5.7",
+      master: "local[2]",
+      elapsed_seconds: 356.266,
+      throughput_raw_transactions_per_second: 28068.91
+    },
+    output_sizes_bytes: { valid_transactions_csv: 660561106 }
   };
-  function drawChart(customers, transactions, customerBytes = null, transactionBytes = null) {
-    if (!chart) return;
-    chart.replaceChildren();
-    chart.setAttribute("viewBox","0 0 600 292");
-    chart.append(svgEl("text",{x:18,y:20,fill:"#8e9fbd","font-size":10,"letter-spacing":1.2},"RECORD COUNTS"));
-    const rows=[{label:"Customers",value:customers,color:"#a99bff",y:35},{label:"Transactions",value:transactions,color:"#6bdcf2",y:78}];
-    const rowMax=Math.max(1,...rows.map(v=>v.value));
-    rows.forEach(v=>{
-      const width=Math.max(3,Math.round(430*v.value/rowMax));
-      chart.append(svgEl("text",{x:18,y:v.y+2,fill:"#b7c5dc","font-size":11},v.label));
-      chart.append(svgEl("rect",{x:18,y:v.y+9,width:430,height:15,rx:5,fill:"#1b263b"}));
-      chart.append(svgEl("rect",{x:18,y:v.y+9,width,height:15,rx:5,fill:v.color,opacity:.95}));
-      chart.append(svgEl("text",{x:578,y:v.y+21,fill:"#eef3ff","font-size":11,"text-anchor":"end"},formatCount(v.value)));
-    });
-    chart.append(svgEl("line",{x1:18,y1:119,x2:580,y2:119,stroke:"#29364d","stroke-width":1}));
-    chart.append(svgEl("text",{x:18,y:142,fill:"#8e9fbd","font-size":10,"letter-spacing":1.2},"RAW FILE SIZE"));
-    if (Number.isFinite(customerBytes) && Number.isFinite(transactionBytes)) {
-      const sizes=[
-        {label:"customers.csv",value:customerBytes,color:"#a99bff",y:157},
-        {label:"transactions.csv",value:transactionBytes,color:"#6bdcf2",y:201}
-      ];
-      const sizeMax=Math.max(1,...sizes.map(v=>v.value));
-      sizes.forEach(v=>{
-        const width=Math.max(3,Math.round(430*v.value/sizeMax));
-        chart.append(svgEl("text",{x:18,y:v.y+2,fill:"#b7c5dc","font-size":11},v.label));
-        chart.append(svgEl("rect",{x:18,y:v.y+9,width:430,height:15,rx:5,fill:"#1b263b"}));
-        chart.append(svgEl("rect",{x:18,y:v.y+9,width,height:15,rx:5,fill:v.color,opacity:.85}));
-        chart.append(svgEl("text",{x:578,y:v.y+21,fill:"#eef3ff","font-size":11,"text-anchor":"end"},formatBytes(v.value)));
-      });
-      chart.append(svgEl("text",{x:18,y:258,fill:"#7184a4","font-size":9},"Measured from the latest generated CSV files"));
-    } else {
-      chart.append(svgEl("text",{x:18,y:177,fill:"#7184a4","font-size":11},"File-size bars appear after the deployment metrics load."));
-      chart.append(svgEl("text",{x:18,y:258,fill:"#7184a4","font-size":9},"Counts shown from the synthetic dataset configuration"));
-    }
-    chart.append(svgEl("text",{x:18,y:281,fill:"#7184a4","font-size":9},"Synthetic portfolio data · refreshed at deploy time"));
+
+  const baselineFallback = {
+    customers: { rows: 500 },
+    transactions: { rows: 10004 },
+    total_bytes: 620300
+  };
+
+  async function readJson(path) {
+    const response = await fetch(new URL(path + "?build=" + Date.now(), document.baseURI), { cache: "no-store" });
+    if (!response.ok) throw new Error("Could not load " + path);
+    return response.json();
   }
-  // Render a known synthetic baseline immediately; replace it with exact build metrics when fetched.
-  if (countNode) countNode.textContent = formatCount(500);
-  if (txNode) txNode.textContent = formatCount(10004);
-  if (footprintNode) footprintNode.textContent = "Refreshing…";
-  if (updatedNode) updatedNode.textContent = "Showing configured synthetic counts while exact file sizes refresh.";
-  drawChart(500, 10004);
+
+  let benchmark = benchmarkFallback;
   try {
-    const response = await fetch(new URL("data/pipeline-metrics.json?build=" + Date.now(), document.baseURI), {cache:"no-store"});
-    if (!response.ok) throw new Error("metrics unavailable");
-    const metrics = await response.json();
-    if (countNode) countNode.textContent = formatCount(metrics.customers.rows);
-    if (txNode) txNode.textContent = formatCount(metrics.transactions.rows);
-    if (footprintNode) footprintNode.textContent = formatBytes(metrics.total_bytes);
-    if (updatedNode) updatedNode.textContent = "Generated from CSV files during deployment · " + new Date(metrics.generated_at).toLocaleString();
-    drawChart(metrics.customers.rows, metrics.transactions.rows, metrics.customers.bytes, metrics.transactions.bytes);
+    benchmark = await readJson("data/scale-benchmark-metrics.json");
   } catch (_) {
-    if (countNode) countNode.textContent = formatCount(500);
-    if (txNode) txNode.textContent = formatCount(10004);
-    if (footprintNode) footprintNode.textContent = "Build pending";
-    if (updatedNode) updatedNode.textContent = "Synthetic dataset counts · exact file sizes refresh after deployment.";
-    drawChart(500, 10004);
+    // The committed, sanitized benchmark values remain a safe fallback if the deployment copy is unavailable.
   }
 
+  const workload = benchmark.workload || benchmarkFallback.workload;
+  const execution = benchmark.execution || benchmarkFallback.execution;
+  const outputSizes = benchmark.output_sizes_bytes || benchmarkFallback.output_sizes_bytes;
+  const reconciliationPassed = benchmark.reconciliation?.passed === true && benchmark.status === "PASS";
 
+  if (byId("metric-customers")) byId("metric-customers").textContent = formatCount(workload.customers);
+  if (byId("metric-transactions")) byId("metric-transactions").textContent = formatCount(workload.raw_transactions);
+  if (byId("metric-status")) {
+    byId("metric-status").textContent = reconciliationPassed ? "PASS" : "CHECK";
+    byId("metric-status").classList.toggle("metric-pass", reconciliationPassed);
+  }
+  if (byId("metric-runtime")) byId("metric-runtime").textContent = Number(execution.elapsed_seconds).toFixed(3) + " sec";
+  if (byId("metric-throughput")) byId("metric-throughput").textContent =
+    formatCount(Math.round(execution.throughput_raw_transactions_per_second * 100) / 100) + " rows/sec";
+  if (byId("metric-output-size")) byId("metric-output-size").textContent = formatBytes(outputSizes.valid_transactions_csv);
+
+  let baseline = baselineFallback;
+  try {
+    baseline = await readJson("data/pipeline-metrics.json");
+  } catch (_) {
+    // Keep the last documented baseline counts visible if the deployment metric file is unavailable.
+  }
+  if (byId("baseline-customers")) byId("baseline-customers").textContent = formatCount(baseline.customers.rows);
+  if (byId("baseline-transactions")) byId("baseline-transactions").textContent = formatCount(baseline.transactions.rows);
+  if (byId("baseline-footprint")) byId("baseline-footprint").textContent = formatBytes(baseline.total_bytes);
+
+  const runDate = benchmark.run_started_at_utc
+    ? new Date(benchmark.run_started_at_utc).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+    : "published run";
+  if (byId("metric-updated")) {
+    byId("metric-updated").textContent =
+      "Published benchmark · " + runDate + " · " + (execution.spark_version || "Spark") + " / " + (execution.master || "local");
+  }
 })();
 
 

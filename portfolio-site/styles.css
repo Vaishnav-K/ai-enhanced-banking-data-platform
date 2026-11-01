@@ -872,3 +872,24 @@ p{font-size:12px}
 .scale-proof-links{display:flex;gap:16px;flex-wrap:wrap;font-size:10px;font-weight:800;color:var(--cyan);}
 .scale-proof-links a:hover{color:#fff;}
 @media(max-width:600px){.scale-proof-card{padding:14px}.scale-proof-metrics{grid-template-columns:1fr;gap:8px}.scale-proof-metrics>div{padding:11px}.scale-proof-top{font-size:9px}.scale-proof-links{gap:12px}}
+
+
+/* Primary 10M benchmark presentation in Data Scale & Observability */
+.benchmark-run-snapshot{margin-top:8px}
+.benchmark-run-snapshot .dataset-inputs-values{gap:16px 22px}
+.benchmark-run-snapshot .dataset-inputs-values>div{align-items:flex-start;flex-direction:column;gap:3px}
+.benchmark-run-snapshot .dataset-inputs-values strong{font:700 12px/1.45 'DM Mono',monospace;color:#dfeaff}
+.benchmark-flow{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:7px;margin:14px 0 4px;padding:13px;border:1px solid rgba(107,220,242,.17);border-radius:10px;background:linear-gradient(110deg,rgba(169,155,255,.055),rgba(107,220,242,.045))}
+.benchmark-flow-node{display:flex;min-width:0;flex-direction:column;gap:3px}
+.benchmark-flow-node>span{font:500 8px 'DM Mono',monospace;letter-spacing:.1em;color:#8093b1}
+.benchmark-flow-node>strong{font-size:20px;line-height:1.15;letter-spacing:-.04em;color:#edf3ff;overflow-wrap:anywhere}
+.benchmark-flow-node>small{font-size:9px;line-height:1.45;color:#91a3bf}
+.benchmark-flow-arrow{font-size:16px;color:var(--cyan)}
+.benchmark-flow-pass>strong{color:var(--green)}
+.scale-proof-links{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;font-size:10px;font-weight:800;color:var(--cyan)}
+.scale-proof-links a:hover{color:#fff}
+@media(max-width:600px){
+  .benchmark-flow{grid-template-columns:1fr auto 1fr;row-gap:13px}
+  .benchmark-flow-node>strong{font-size:18px}
+  .benchmark-run-snapshot .dataset-inputs-values{gap:12px 18px}
+}
