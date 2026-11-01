@@ -192,6 +192,7 @@ Use `docker compose down` to stop services. Do not add `-v` unless deliberately 
 | 2026-11-02 | Refined portfolio hero and visual hierarchy | Hero now uses a clean title-case `Vaishnav K` name in the blue/cyan accent, with a smaller `Engineering data at scale.` tagline. Section and project headings share the cool-blue accent; the earlier intermittent name glitch was removed. |
 | 2026-11-02 | Replaced screenshot new-tab links with an in-page lightbox | Airflow and S3 screenshots open in a large native dialog; close button, clicking the image/backdrop, and Escape dismiss it. Captions and focus return are included. |
 | 2026-11-02 | Deployed hero, heading and screenshot-viewer refinement | Portfolio deployment run `41345983952` completed successfully: https://github.com/Vaishnav-K/data-engineer-portfolio/actions/runs/41345983952 |
+| 2026-11-02 | Visually verified the latest public portfolio after deployment | Title-case name and smaller tagline hierarchy, shared blue headings, both in-page screenshot lightboxes and their close controls passed. No horizontal overflow was observed at desktop, 390px or 320px. |
 | 2026-11-02 | Completed read-only visual verification of the live portfolio | Desktop 1440px and mobile 390px/320px passed: ticker moves right-to-left, both evidence images load, S3 identifying areas remain obscured, and no horizontal overflow was observed. |
 | 2026-11-02 | Added this continuity file and linked it from README | Current maintenance notes |
 
