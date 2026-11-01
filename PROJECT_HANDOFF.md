@@ -180,6 +180,7 @@ Use `docker compose down` to stop services. Do not add `-v` unless deliberately 
 | 2026-11-01 | Project README rebrand PR #5 merged | New README heading, clone path and badges use the new slug |
 | 2026-11-01 | Portfolio rebrand PR #2 merged | Portfolio source, links, README and deployment workflow use the new slug |
 | 2026-11-01 | GitHub Pages deployment run #24 completed successfully | Run ID `41336863723`; deploy job and all recorded steps concluded `success` |
+| 2026-11-01 | The banking repository's embedded portfolio copy deployed through its own Pages workflow | Run ID `41337684185`, triggered by embedded-site commit `74c9c15089cdf2ef9758339d6a2050e1fc93cbd2`; all deployment steps concluded `success` |
 | 2026-11-02 | Rebranded the additional embedded portfolio copy in `portfolio-site/index.html` | Commit `74c9c15089cdf2ef9758339d6a2050e1fc93cbd2`; replaced the old visible title, description and repository links |
 | 2026-11-02 | Aligned the architecture document title | Commit `06906b60040c005b741e959f59c387dd139dd4e2` |
 | 2026-11-02 | Added `PROJECT_HANDOFF.md` and linked it from the public README | Handoff creation commit `9e6606506950cac3ffa8e873f67591fa0a9de400`; README link commit `e5bdf21d837b75e734b30ef48a067953f39dee88` |
