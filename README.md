@@ -8,6 +8,10 @@ A reproducible, synthetic banking data platform that demonstrates more than a ba
 
 Built with **Python, DuckDB, SQL, Parquet, PySpark, Apache Airflow, Docker, and Amazon S3**. The project is designed to be explored locally without AWS credentials; S3 upload and the Airflow end-to-end path are optional, explicitly enabled workflows.
 
+
+
+For project continuity and maintenance history, see the [Project Handoff](PROJECT_HANDOFF.md).
+
 ## Project at a glance
 
 | Engineering concern | What is implemented | Evidence to inspect |
