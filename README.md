@@ -1,8 +1,8 @@
-# AI-Enhanced Banking Data Platform
+# Enterprise Banking Data Platform
 
-[![Banking Platform CI](https://github.com/Vaishnav-K/ai-enhanced-banking-data-platform/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Vaishnav-K/ai-enhanced-banking-data-platform/actions/workflows/ci.yml)
-[![Spark Pipeline CI](https://github.com/Vaishnav-K/ai-enhanced-banking-data-platform/actions/workflows/spark-ci.yml/badge.svg?branch=main)](https://github.com/Vaishnav-K/ai-enhanced-banking-data-platform/actions/workflows/spark-ci.yml)
-[![GitHub Pages](https://github.com/Vaishnav-K/ai-enhanced-banking-data-platform/actions/workflows/deploy-portfolio.yml/badge.svg?branch=main)](https://github.com/Vaishnav-K/ai-enhanced-banking-data-platform/actions/workflows/deploy-portfolio.yml)
+[![Banking Platform CI](https://github.com/Vaishnav-K/enterprise-banking-data-platform/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Vaishnav-K/enterprise-banking-data-platform/actions/workflows/ci.yml)
+[![Spark Pipeline CI](https://github.com/Vaishnav-K/enterprise-banking-data-platform/actions/workflows/spark-ci.yml/badge.svg?branch=main)](https://github.com/Vaishnav-K/enterprise-banking-data-platform/actions/workflows/spark-ci.yml)
+[![GitHub Pages](https://github.com/Vaishnav-K/enterprise-banking-data-platform/actions/workflows/deploy-portfolio.yml/badge.svg?branch=main)](https://github.com/Vaishnav-K/enterprise-banking-data-platform/actions/workflows/deploy-portfolio.yml)
 
 A reproducible, synthetic banking data platform that demonstrates more than a basic ETL job: **data validation, batch and incremental processing, independent-engine reconciliation, traceable run evidence, and evidence-based operational diagnostics**.
 
@@ -40,8 +40,8 @@ The incremental sample contains 4 incoming transactions, producing 2 valid rows 
 From PowerShell on Windows, with Python 3.12 installed:
 
 ```powershell
-git clone https://github.com/Vaishnav-K/ai-enhanced-banking-data-platform.git
-Set-Location .\ai-enhanced-banking-data-platform
+git clone https://github.com/Vaishnav-K/enterprise-banking-data-platform.git
+Set-Location .\enterprise-banking-data-platform
 powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 .\.venv312\Scripts\python.exe .\src\generate_data.py
 .\.venv312\Scripts\python.exe .\src\demo.py
@@ -55,7 +55,7 @@ The local pipeline uses synthetic data and does not require S3 credentials. For 
 2. Follow the [end-to-end demo walkthrough](docs/demo-walkthrough.md).
 3. Run the local demo and inspect `data/processed/pipeline_run_report.json`.
 4. Generate and open the platform health dashboard using the command later in this README.
-5. Review the separate [core pipeline CI](https://github.com/Vaishnav-K/ai-enhanced-banking-data-platform/actions/workflows/ci.yml) and [Spark CI](https://github.com/Vaishnav-K/ai-enhanced-banking-data-platform/actions/workflows/spark-ci.yml) runs.
+5. Review the separate [core pipeline CI](https://github.com/Vaishnav-K/enterprise-banking-data-platform/actions/workflows/ci.yml) and [Spark CI](https://github.com/Vaishnav-K/enterprise-banking-data-platform/actions/workflows/spark-ci.yml) runs.
 
 ## Architecture
 
