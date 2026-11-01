@@ -285,6 +285,19 @@ The existing curated Parquet datasets were also queried through Amazon Athena us
 These are results from synthetic data and a development run, not production metrics. The report does not expose the bucket name, credentials, or private AWS configuration. To reproduce the queries, point the SQL at a bucket you control and configure Athena's query-results S3 location.
 
 
+## Visual proof: 10-million-transaction Spark run
+
+The graphic below summarizes the **measured run** from the published evidence file. It is a generated data-flow illustration—not a screenshot of a live Spark UI or production system.
+
+![10-million-transaction Spark benchmark: input, processing, reconciliation, and measured results](docs/images/10m-spark-benchmark.svg)
+
+**What happened in this run:** 100,000 synthetic customers and 10,000,000 synthetic transaction rows were read and processed by Spark 3.5.7. The run produced 10,000,000 valid rows, quarantined 0 rows, and passed the reconciliation check. End-to-end elapsed time was 356.266 seconds, with measured throughput of 28,068.91 raw rows/second.
+
+- [Open the measured benchmark report](reports/scale-benchmark-10m-results-public.json)
+- [Read the benchmark methodology and reproduction steps](docs/scale-benchmark-10m.md)
+
+> **Scope note:** This is a local Windows synthetic-data benchmark, not production-scale evidence or an SLA. Timing includes Spark startup, reads, transformations, writes, and analytics. This run used CSV output; it does not measure Parquet-write performance.
+
 ## 10-million-transaction scale experiment
 
 An isolated scale benchmark is available to generate a larger synthetic dataset and process it through Spark without overwriting the baseline demo data.
