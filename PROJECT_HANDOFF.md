@@ -170,6 +170,7 @@ Use `docker compose down` to stop services. Do not add `-v` unless deliberately 
   - S3 object prefix: `banking-data/raw/`
   - Airflow/Compose names, volume names, environment variables and generated data paths.
 - Do not rename a bucket or change an object prefix without a separate migration plan.
+- Historical run records may retain a former `pipeline_name` value. The dashboard aliases that exact legacy display label to the current project name at presentation time; stored run IDs, timestamps, statuses and source evidence are not rewritten.
 
 ## Portfolio deployment and branding history
 
@@ -182,7 +183,8 @@ Use `docker compose down` to stop services. Do not add `-v` unless deliberately 
 | 2026-11-02 | Rebranded the additional embedded portfolio copy in `portfolio-site/index.html` | Commit `74c9c15089cdf2ef9758339d6a2050e1fc93cbd2`; replaced the old visible title, description and repository links |
 | 2026-11-02 | Aligned the architecture document title | Commit `06906b60040c005b741e959f59c387dd139dd4e2` |
 | 2026-11-02 | Added `PROJECT_HANDOFF.md` and linked it from the public README | Handoff creation commit `9e6606506950cac3ffa8e873f67591fa0a9de400`; README link commit `e5bdf21d837b75e734b30ef48a067953f39dee88` |
-| 2026-11-02 | Audited public branding references across both repositories | Old slug and old project-title phrase absent in the reviewed README, handoff, architecture, embedded portfolio, main portfolio source, portfolio README, deployment workflow, and the three banking-repository workflows. This is a targeted source audit, not a rewrite of Git history. |
+| 2026-11-02 | Updated dashboard heading/title and normalized the exact historical pipeline display label | Dashboard generator commit `9c97d12260f343fed7edc422a0e501639714d033`; published dashboard refresh commit `908fbeba7bdf89ebaad6dc0def47297ab6acb85f`. Persisted historical evidence was not rewritten. |
+| 2026-11-02 | Audited public branding references across both repositories | Old slug and old project-title phrase absent in the reviewed README, handoff, architecture, embedded portfolio, main portfolio source, portfolio README, deployment workflow, banking-repository workflows, dashboard generator and published dashboard. This is a targeted source audit, not a rewrite of Git history. |
 | 2026-11-02 | Added this continuity file and linked it from README | Current maintenance notes |
 
 The main portfolio source is `Vaishnav-K/data-engineer-portfolio/site/index.html`. The banking repository also contains a second embedded site copy at `portfolio-site/index.html`; keep its visible project name and repository links aligned when editing it. Do not confuse these two locations.
