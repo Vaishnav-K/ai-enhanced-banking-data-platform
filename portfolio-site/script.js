@@ -97,7 +97,7 @@ filterButtons.forEach((button) => {
   const baselineFallback = {
     customers: { rows: 500 },
     transactions: { rows: 10004 },
-    total_bytes: 635200
+    total_bytes: 620300
   };
 
   async function readJson(path) {
