@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0b1020">
   <meta name="description" content="Vaishnav K — Senior Data Engineer with 5 years of experience in Spark, Databricks, banking data platforms, AWS, and pipeline reliability.">
   <title>Vaishnav K | Senior Data Engineer</title>
-  <link rel="stylesheet" href="styles.css?v=20261029-scale-proof-1">
+  <link rel="stylesheet" href="styles.css?v=20261101-10m-primary">
 </head>
 <body>
   <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
@@ -106,25 +106,35 @@
     </section>
 
     <section class="section-wrap section-block" id="scale">
-      <div class="section-heading"><div><div class="eyebrow">DATA SCALE & OBSERVABILITY</div><h2>Measure the data, not just the code.</h2></div><p>This public demo is intentionally lightweight and synthetic. Dataset counts and file sizes are measured during deployment; professional client-scale examples are shown separately.</p></div>
+      <div class="section-heading"><div><div class="eyebrow">DATA SCALE & OBSERVABILITY</div><h2>Measure the data, not just the code.</h2></div><p>The published local Spark benchmark processed 10 million synthetic transaction rows. The compact baseline fixture is retained separately for quick functional checks.</p></div>
       <div class="scale-grid">
         <div class="scale-panel">
-          <div class="scale-panel-heading"><div><span class="scale-kicker">PUBLIC DEMO DATA · SYNTHETIC</span><h3>Reproducible pipeline inputs</h3></div><span class="scale-live"><span class="status-dot"></span> BUILD-REFRESHED</span></div>
+          <div class="scale-panel-heading"><div><span class="scale-kicker">MEASURED SCALE BENCHMARK · SYNTHETIC</span><h3>10-million-transaction Spark run</h3></div><span class="scale-live"><span class="status-dot"></span> VERIFIED REPORT</span></div>
           <div class="dataset-kpis dataset-quality-kpis">
-            <div><span>Pipeline stages</span><strong>7</strong><small>Schema validation through analytics exports</small></div>
-            <div><span>Seeded quality cases</span><strong>4</strong><small>Duplicate, missing key, invalid amount, unknown customer</small></div>
-            <div><span>Orchestrated run</span><strong class="metric-pass">PASS</strong><small>Airflow report validation · S3 ingestion</small></div>
+            <div><span>Transaction rows processed</span><strong id="metric-transactions">10,000,000</strong><small>Raw and deduplicated input rows</small></div>
+            <div><span>Synthetic customers</span><strong id="metric-customers">100,000</strong><small>Customer reference dataset</small></div>
+            <div><span>Reconciliation</span><strong class="metric-pass" id="metric-status">PASS</strong><small>10M valid · 0 quarantined in this run</small></div>
           </div>
-          <div class="dataset-input-snapshot">
-            <div class="dataset-inputs-heading"><span>MEASURED SYNTHETIC INPUTS</span><span>DEMO DATA</span></div>
+          <div class="dataset-input-snapshot benchmark-run-snapshot">
+            <div class="dataset-inputs-heading"><span>OBSERVED BENCHMARK METRICS</span><span>SPARK 3.5.7 · WINDOWS · local[2]</span></div>
             <div class="dataset-inputs-values">
-              <div><span>Customers</span><strong id="metric-customers">Loading…</strong></div>
-              <div><span>Transaction rows</span><strong id="metric-transactions">Loading…</strong></div>
-              <div><span>Total input files</span><strong id="metric-footprint">Loading…</strong></div>
+              <div><span>Elapsed time</span><strong id="metric-runtime">356.266 sec</strong></div>
+              <div><span>Throughput</span><strong id="metric-throughput">28,068.91 rows/sec</strong></div>
+              <div><span>Valid CSV output</span><strong id="metric-output-size">660.56 MB</strong></div>
             </div>
           </div>
-          <div class="chart-wrap"><svg id="dataset-chart" viewBox="0 0 600 220" role="img" aria-label="Bar chart comparing generated customer and transaction row counts and file sizes"><text x="24" y="30" fill="#9aa7c1" font-size="12">Loading dataset metrics…</text></svg></div>
-          <div class="demo-size-note"><strong>Why is the footprint small?</strong><p>This public demo deliberately uses a compact synthetic dataset so reviewers can understand and run the pipeline quickly. The displayed file size is measured, not estimated; client-scale work is shown separately.</p></div><p class="scale-caption" id="metric-updated">Metrics are loaded from the latest deployed build.</p>
+          <div class="benchmark-flow" aria-label="Ten million transaction benchmark flow">
+            <div class="benchmark-flow-node"><span>INPUT</span><strong>10M</strong><small>Raw rows</small></div>
+            <span class="benchmark-flow-arrow" aria-hidden="true">→</span>
+            <div class="benchmark-flow-node"><span>PROCESS</span><strong>SPARK</strong><small>Deduplicate + validate</small></div>
+            <span class="benchmark-flow-arrow" aria-hidden="true">→</span>
+            <div class="benchmark-flow-node"><span>OUTPUT</span><strong>10M</strong><small>Valid rows</small></div>
+            <span class="benchmark-flow-arrow" aria-hidden="true">→</span>
+            <div class="benchmark-flow-node benchmark-flow-pass"><span>CHECK</span><strong>PASS</strong><small>Reconciled</small></div>
+          </div>
+          <div class="demo-size-note"><strong>Small functional fixture — kept for quick local checks</strong><p>The compact baseline is separate from the scale benchmark: <strong id="baseline-customers">500</strong> customers, <strong id="baseline-transactions">10,004</strong> transaction rows and <strong id="baseline-footprint">620.3 KB</strong> of raw CSV inputs. These are not the 10M benchmark counts.</p></div>
+          <p class="scale-caption" id="metric-updated">Metrics are read from the committed benchmark evidence and the deployment-generated baseline fixture report.</p>
+          <div class="scale-proof-links"><a href="https://github.com/Vaishnav-K/ai-enhanced-banking-data-platform/blob/main/reports/scale-benchmark-10m-results-public.json" target="_blank" rel="noreferrer">Open measured benchmark JSON ↗</a><a href="https://github.com/Vaishnav-K/ai-enhanced-banking-data-platform/blob/main/docs/scale-benchmark-10m.md" target="_blank" rel="noreferrer">Benchmark methodology ↗</a></div>
         </div>
         <div class="scale-panel scale-context">
           <span class="scale-kicker">ENTERPRISE DATA ENGINEERING</span>
@@ -135,7 +145,7 @@
           <p class="scale-caption">The scenario is illustrative. The specific ~12 TB Bank of America data scope and the Citi optimization result remain listed with their respective project case studies.</p>
         </div>
       </div>
-      <p class="source-note">The chart uses row counts and byte sizes measured from the synthetic CSV files generated during deployment. It refreshes when a relevant change is pushed to GitHub and the Pages workflow runs; it does not monitor unpushed local test runs.</p>
+      <p class="source-note">The 10M figures come from the committed, measured local Spark benchmark report. It used synthetic data, Spark 3.5.7 on Windows with local[2], and CSV output; elapsed time includes startup, reads, transformations, writes and analytics. It is not production or SLA evidence. The smaller baseline metrics are measured independently during website deployment.</p>
     </section>
 
     <section class="section-wrap section-block" id="work">
@@ -314,6 +324,6 @@
     </div></div></section>
   </main>
   <footer class="site-footer section-wrap"><a class="brand" href="#home"><span class="brand-mark">V.</span><span class="brand-name">VAISHNAV<span class="brand-divider">|</span><span class="brand-role">DATA ENGINEERING</span></span></a><span>Senior Data Engineer · Chennai, India</span><a href="#home">Back to top ↑</a></footer>
-  <script src="script.js?v=20261022-skill-overlay-2"></script>
+  <script src="script.js?v=20261101-10m-primary"></script>
 </body>
 </html>
